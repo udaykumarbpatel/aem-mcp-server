@@ -81,6 +81,8 @@ export class MCPRequestHandler {
                     return await this.aemConnector.getTemplates(params.sitePath);
                 case 'getTemplateStructure':
                     return await this.aemConnector.getTemplateStructure(params.templatePath);
+                case 'bulkUpdateComponents':
+                    return await this.aemConnector.bulkUpdateComponents(params);
                 default:
                     throw new Error(`Unknown method: ${method}`);
             }
@@ -135,6 +137,7 @@ export class MCPRequestHandler {
             { name: 'deleteAsset', description: 'Delete an asset from AEM DAM', parameters: ['assetPath', 'force'] },
             { name: 'getTemplates', description: 'Get available page templates', parameters: ['sitePath'] },
             { name: 'getTemplateStructure', description: 'Get detailed structure of a specific template', parameters: ['templatePath'] },
+            { name: 'bulkUpdateComponents', description: 'Update multiple components in a single operation with validation and rollback support', parameters: ['updates', 'validateFirst', 'continueOnError'] },
         ];
     }
 }

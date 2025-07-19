@@ -402,6 +402,29 @@ const tools = [
             required: ['templatePath'],
         },
     },
+    {
+        name: 'bulkUpdateComponents',
+        description: 'Update multiple components in a single operation with validation and rollback support',
+        inputSchema: {
+            type: 'object',
+            properties: {
+                updates: {
+                    type: 'array',
+                    items: {
+                        type: 'object',
+                        properties: {
+                            componentPath: { type: 'string' },
+                            properties: { type: 'object' }
+                        },
+                        required: ['componentPath', 'properties']
+                    }
+                },
+                validateFirst: { type: 'boolean' },
+                continueOnError: { type: 'boolean' }
+            },
+            required: ['updates'],
+        },
+    },
 ];
 server.setRequestHandler(ListToolsRequestSchema, async () => {
     return { tools };
@@ -577,6 +600,10 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
             case 'getTemplateStructure': {
                 const templatePath = args.templatePath;
                 const result = await aemConnector.getTemplateStructure(templatePath);
+                return { content: [{ type: 'text', text: JSON.stringify(result, null, 2) }] };
+            }
+            case 'bulkUpdateComponents': {
+                const result = await aemConnector.bulkUpdateComponents(args);
                 return { content: [{ type: 'text', text: JSON.stringify(result, null, 2) }] };
             }
             default:
