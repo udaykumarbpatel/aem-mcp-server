@@ -626,3 +626,5 @@ async function callMcpMethod(method, params) {
 
 ## License
 [MIT](LICENSE) 
+
+[![MCP Badge](https://lobehub.com/badge/mcp-full/indrasishbanerjee-aem-mcp-server)](https://lobehub.com/mcp/indrasishbanerjee-aem-mcp-server)
