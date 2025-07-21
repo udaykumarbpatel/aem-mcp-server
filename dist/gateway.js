@@ -5,6 +5,7 @@ import { fileURLToPath } from 'url';
 import dotenv from 'dotenv';
 import { AEMConnector } from './aem-connector.js';
 import { MCPRequestHandler } from './mcp-handler.js';
+import { logger, loggingMiddleware, generateRequestId } from './logger.js';
 import swaggerUi from 'swagger-ui-express';
 import swaggerJSDoc from 'swagger-jsdoc';
 // import llmRouter from './llm-integration.js';
@@ -19,6 +20,7 @@ app.use(cors());
 app.use(express.json({ limit: '10mb' }));
 app.use(express.urlencoded({ extended: true }));
 app.use(express.static(join(__dirname, '../public')));
+app.use(loggingMiddleware);
 const basicAuth = (req, res, next) => {
     const authHeader = req.headers.authorization;
     if (!authHeader || !authHeader.startsWith('Basic ')) {
@@ -40,26 +42,169 @@ if (process.env.MCP_USERNAME && process.env.MCP_PASSWORD) {
 }
 const aemConnector = new AEMConnector();
 const mcpHandler = new MCPRequestHandler(aemConnector);
+// Method validation middleware
+const validateMethod = (req, res, next) => {
+    const { method, params } = req.body;
+    if (!method || typeof method !== 'string') {
+        res.status(400).json({
+            success: false,
+            error: {
+                code: 'INVALID_METHOD',
+                message: 'Method name is required and must be a string',
+                timestamp: new Date().toISOString()
+            }
+        });
+        return;
+    }
+    const availableMethods = mcpHandler.getAvailableMethods();
+    const methodExists = availableMethods.some(m => m.name === method);
+    if (!methodExists) {
+        res.status(404).json({
+            success: false,
+            error: {
+                code: 'METHOD_NOT_FOUND',
+                message: `Method '${method}' not found`,
+                availableMethods: availableMethods.map(m => m.name),
+                timestamp: new Date().toISOString()
+            }
+        });
+        return;
+    }
+    next();
+};
+// Enhanced error handling middleware
+const handleError = (error, req, res, next) => {
+    const requestId = req.requestId || generateRequestId();
+    logger.error('Gateway Error', {
+        requestId,
+        method: req.method,
+        error,
+        metadata: {
+            url: req.url,
+            userAgent: req.headers['user-agent'],
+            ip: req.ip,
+            body: req.body
+        }
+    });
+    const errorResponse = {
+        success: false,
+        error: {
+            code: error.code || 'INTERNAL_ERROR',
+            message: error.message || 'An unexpected error occurred',
+            timestamp: new Date().toISOString(),
+            requestId
+        }
+    };
+    if (process.env.NODE_ENV === 'development') {
+        errorResponse.error.stack = error.stack;
+    }
+    const statusCode = error.statusCode || error.status || 500;
+    res.status(statusCode).json(errorResponse);
+};
+// Enhanced health check endpoint
 app.get('/health', async (req, res) => {
     try {
         const aemConnected = await aemConnector.testConnection();
-        res.json({
-            status: 'healthy',
-            aem: aemConnected ? 'connected' : 'disconnected',
-            mcp: 'ready',
-            timestamp: new Date().toISOString(),
-            version: process.env.npm_package_version || '1.0.0',
-            ports: { gateway: GATEWAY_PORT, mcp: MCP_PORT },
-        });
+        const healthData = {
+            status: aemConnected ? 'healthy' : 'degraded',
+            aem: {
+                connected: aemConnected,
+                host: process.env.AEM_HOST || 'http://localhost:4502',
+                lastChecked: new Date().toISOString()
+            },
+            mcp: {
+                status: 'ready',
+                methodCount: mcpHandler.getAvailableMethods().length,
+                version: '1.0.0'
+            },
+            server: {
+                uptime: process.uptime(),
+                memory: process.memoryUsage(),
+                timestamp: new Date().toISOString(),
+                version: process.env.npm_package_version || '1.0.0',
+                ports: { gateway: GATEWAY_PORT, mcp: MCP_PORT }
+            }
+        };
+        res.status(aemConnected ? 200 : 503).json(healthData);
     }
     catch (error) {
-        res.status(500).json({ status: 'unhealthy', error: error.message, timestamp: new Date().toISOString() });
+        res.status(500).json({
+            status: 'unhealthy',
+            error: {
+                message: error.message,
+                code: error.code || 'HEALTH_CHECK_FAILED',
+                timestamp: new Date().toISOString()
+            }
+        });
+    }
+});
+// Detailed health check endpoint
+app.get('/health/detailed', async (req, res) => {
+    try {
+        const aemConnected = await aemConnector.testConnection();
+        const methods = mcpHandler.getAvailableMethods();
+        const detailedHealth = {
+            status: aemConnected ? 'healthy' : 'degraded',
+            timestamp: new Date().toISOString(),
+            aem: {
+                connected: aemConnected,
+                host: process.env.AEM_HOST || 'http://localhost:4502',
+                credentials: {
+                    username: process.env.AEM_SERVICE_USER || 'admin',
+                    configured: !!(process.env.AEM_SERVICE_USER && process.env.AEM_SERVICE_PASSWORD)
+                }
+            },
+            mcp: {
+                status: 'ready',
+                methodCount: methods.length,
+                methodsByCategory: methods.reduce((acc, method) => {
+                    const category = method.name.includes('Page') ? 'page' :
+                        method.name.includes('Component') ? 'component' :
+                            method.name.includes('Asset') ? 'asset' : 'other';
+                    acc[category] = (acc[category] || 0) + 1;
+                    return acc;
+                }, {}),
+                version: '1.0.0'
+            },
+            server: {
+                uptime: process.uptime(),
+                memory: process.memoryUsage(),
+                nodeVersion: process.version,
+                platform: process.platform,
+                environment: process.env.NODE_ENV || 'development'
+            },
+            configuration: {
+                gatewayPort: GATEWAY_PORT,
+                mcpPort: MCP_PORT,
+                authEnabled: !!(process.env.MCP_USERNAME && process.env.MCP_PASSWORD),
+                corsEnabled: true
+            }
+        };
+        res.status(aemConnected ? 200 : 503).json(detailedHealth);
+    }
+    catch (error) {
+        res.status(500).json({
+            status: 'unhealthy',
+            error: {
+                message: error.message,
+                code: error.code || 'DETAILED_HEALTH_CHECK_FAILED',
+                stack: process.env.NODE_ENV === 'development' ? error.stack : undefined
+            },
+            timestamp: new Date().toISOString()
+        });
     }
 });
 app.post('/mcp', async (req, res) => {
+    const requestId = req.requestId;
+    const startTime = Date.now();
     try {
         const { jsonrpc, id, method, params } = req.body;
+        logger.methodStart(method || 'unknown', params, requestId);
         if (jsonrpc !== '2.0' || !method) {
+            logger.warn('Invalid JSON-RPC request', {
+                requestId,
+                metadata: { jsonrpc, method, hasParams: !!params }
+            });
             res.status(400).json({
                 jsonrpc: '2.0',
                 id: id || null,
@@ -68,9 +213,14 @@ app.post('/mcp', async (req, res) => {
             return;
         }
         const result = await mcpHandler.handleRequest(method, params || {});
+        const duration = Date.now() - startTime;
+        logger.methodEnd(method, duration, true, requestId, result);
         res.json({ jsonrpc: '2.0', id: id || null, result });
     }
     catch (error) {
+        const duration = Date.now() - startTime;
+        const method = req.body?.method || 'unknown';
+        logger.methodError(method, error, duration, requestId, req.body?.params);
         res.json({
             jsonrpc: '2.0',
             id: req.body?.id || null,
@@ -87,8 +237,142 @@ app.get('/mcp/methods', async (req, res) => {
         res.status(500).json({ error: error.message });
     }
 });
+// REST-style API endpoints
+app.get('/api/methods', async (req, res) => {
+    try {
+        const methods = mcpHandler.getAvailableMethods();
+        const categorizedMethods = methods.reduce((acc, method) => {
+            const category = method.name.includes('Page') ? 'page' :
+                method.name.includes('Component') ? 'component' :
+                    method.name.includes('Asset') ? 'asset' :
+                        method.name.includes('Template') ? 'template' :
+                            method.name.includes('search') || method.name.includes('Search') ? 'search' :
+                                method.name.includes('Site') || method.name.includes('Language') || method.name.includes('Locale') ? 'site' :
+                                    method.name.includes('publish') || method.name.includes('activate') || method.name.includes('replicate') ? 'replication' :
+                                        method.name.includes('Node') || method.name.includes('Children') ? 'legacy' : 'utility';
+            if (!acc[category])
+                acc[category] = [];
+            acc[category].push(method);
+            return acc;
+        }, {});
+        res.json({
+            success: true,
+            data: {
+                methods: categorizedMethods,
+                totalMethods: methods.length,
+                categories: Object.keys(categorizedMethods),
+                timestamp: new Date().toISOString()
+            }
+        });
+    }
+    catch (error) {
+        res.status(500).json({
+            success: false,
+            error: {
+                code: 'METHOD_LIST_FAILED',
+                message: error.message,
+                timestamp: new Date().toISOString()
+            }
+        });
+    }
+});
+app.get('/api/methods/:methodName', async (req, res) => {
+    try {
+        const { methodName } = req.params;
+        const methods = mcpHandler.getAvailableMethods();
+        const method = methods.find(m => m.name === methodName);
+        if (!method) {
+            res.status(404).json({
+                success: false,
+                error: {
+                    code: 'METHOD_NOT_FOUND',
+                    message: `Method '${methodName}' not found`,
+                    availableMethods: methods.map(m => m.name),
+                    timestamp: new Date().toISOString()
+                }
+            });
+            return;
+        }
+        res.json({
+            success: true,
+            data: {
+                method,
+                examples: {
+                    jsonrpc: {
+                        method: 'POST',
+                        url: '/mcp',
+                        body: {
+                            jsonrpc: '2.0',
+                            id: 1,
+                            method: methodName,
+                            params: {}
+                        }
+                    },
+                    rest: {
+                        method: 'POST',
+                        url: `/api/methods/${methodName}`,
+                        body: {}
+                    }
+                },
+                timestamp: new Date().toISOString()
+            }
+        });
+    }
+    catch (error) {
+        res.status(500).json({
+            success: false,
+            error: {
+                code: 'METHOD_DETAILS_FAILED',
+                message: error.message,
+                timestamp: new Date().toISOString()
+            }
+        });
+    }
+});
+app.post('/api/methods/:methodName', async (req, res) => {
+    try {
+        const { methodName } = req.params;
+        const params = req.body;
+        const methods = mcpHandler.getAvailableMethods();
+        const methodExists = methods.some(m => m.name === methodName);
+        if (!methodExists) {
+            res.status(404).json({
+                success: false,
+                error: {
+                    code: 'METHOD_NOT_FOUND',
+                    message: `Method '${methodName}' not found`,
+                    availableMethods: methods.map(m => m.name),
+                    timestamp: new Date().toISOString()
+                }
+            });
+            return;
+        }
+        const result = await mcpHandler.handleRequest(methodName, params);
+        res.json({
+            success: true,
+            method: methodName,
+            data: result,
+            timestamp: new Date().toISOString()
+        });
+    }
+    catch (error) {
+        res.status(500).json({
+            success: false,
+            method: req.params.methodName,
+            error: {
+                code: error.code || 'METHOD_EXECUTION_FAILED',
+                message: error.message,
+                timestamp: new Date().toISOString()
+            }
+        });
+    }
+});
 // app.use('/api', llmRouter);
 // app.use('/webhook', telegramIntegration);
+// Dashboard route
+app.get('/dashboard', (req, res) => {
+    res.sendFile(join(__dirname, '../public/dashboard.html'));
+});
 app.get('/', (req, res) => {
     res.json({
         name: 'AEM MCP Gateway Server',
@@ -96,8 +380,10 @@ app.get('/', (req, res) => {
         version: process.env.npm_package_version || '1.0.0',
         endpoints: {
             health: { method: 'GET', path: '/health', description: 'Health check for all services' },
+            dashboard: { method: 'GET', path: '/dashboard', description: 'Interactive web dashboard' },
             mcp: { method: 'POST', path: '/mcp', description: 'JSON-RPC endpoint for MCP calls' },
             mcpMethods: { method: 'GET', path: '/mcp/methods', description: 'List all available MCP methods' },
+            apiMethods: { method: 'GET', path: '/api/methods', description: 'REST API methods listing' },
         },
         architecture: 'MCP integration',
         timestamp: new Date().toISOString(),

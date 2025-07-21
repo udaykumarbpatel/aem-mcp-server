@@ -7,7 +7,11 @@
     "build": "tsc",
     "start": "node dist/index.js",
     "dev": "ts-node-dev src/index.ts",
-    "mcp": "node dist/mcp-server.js"
+    "mcp": "node dist/mcp-server.js",
+    "test": "npm run build && node dist/tests/run-tests.js",
+    "test:quick": "npm run build && node dist/tests/run-tests.js -- --quick",
+    "test:verbose": "npm run build && node dist/tests/run-tests.js -- --verbose",
+    "test:report": "npm run build && node dist/tests/run-tests.js -- --output test-report --format html"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.19.0",
