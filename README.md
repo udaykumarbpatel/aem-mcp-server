@@ -1,3 +1,8 @@
+# 📢 Contact Me for AEM MCP Server Solutions
+
+**Interested in purchasing an MCP server for AEM as a Cloud Service?**  
+Reach out to me on [LinkedIn](https://www.linkedin.com/in/indrasish/) or [Email Me](mailto:indrasish00@gmail.com) to discuss options or to explore a more comprehensive version of this AEM MCP server, featuring separate Read and Write servers.
+
 # AEM MCP Server (aem-mcp-server)
 
 [![MIT License](https://img.shields.io/badge/license-MIT-green.svg)](LICENSE)
@@ -628,3 +633,4 @@ async function callMcpMethod(method, params) {
 [MIT](LICENSE) 
 
 [![MCP Badge](https://lobehub.com/badge/mcp-full/indrasishbanerjee-aem-mcp-server)](https://lobehub.com/mcp/indrasishbanerjee-aem-mcp-server)
+
