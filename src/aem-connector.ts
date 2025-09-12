@@ -1548,7 +1548,7 @@ export class AEMConnector {
       const client = this.createAxiosInstance();
       const templateStructureResponse = await this.getTemplateStructure(selectedTemplate);
       const templateData = (templateStructureResponse as any).data;
-      const initialContent = templateData.structure.initialContent || {};
+      const initialContent = templateData.structure.initialContent?.['jcr:content'] || {};
       const pageResourceType = templateData.structure.properties?.['sling:resourceType'] ||
                                templateData.fullData?.['jcr:content']?.['sling:resourceType'] ||
                                'foundation/components/page';
@@ -1659,15 +1659,18 @@ export class AEMConnector {
   /**
    * Helper method to copy initial content structure from template to page
    */
-  private async copyInitialContentStructure(client: any, pagePath: string, templatePath: string, initialContent: any) {
-    // Get full initial content from template
+  private async copyInitialContentStructure(client: any, pagePath: string, templatePath: string, initialContent?: any) {
+    // Use provided initial content if available; otherwise fetch from template
     try {
-      const initialResponse = await client.get(`${templatePath}/initial/jcr:content.json`, {
-        params: { ':depth': '5' }
-      });
+      let fullInitialContent = initialContent;
+      if (!fullInitialContent || Object.keys(fullInitialContent).length === 0) {
+        const initialResponse = await client.get(`${templatePath}/initial/jcr:content.json`, {
+          params: { ':depth': '5' }
+        });
+        fullInitialContent = initialResponse.data;
+      }
 
-      if (initialResponse.data) {
-        const fullInitialContent = initialResponse.data;
+      if (fullInitialContent) {
         // Recursive function to copy nested structures
         const copyStructure = async (sourceData: any, targetPath: string) => {
           const entries = Object.entries(sourceData);
@@ -1729,7 +1732,8 @@ export class AEMConnector {
       console.warn(
         'Warning: Could not copy full initial content structure:',
         error instanceof Error ? error.message : String(error)
-      );    }
+      );
+    }
   }
 
 
