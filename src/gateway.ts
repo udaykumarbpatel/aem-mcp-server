@@ -158,6 +158,14 @@ app.get('/health', async (req, res) => {
 
 // Detailed health check endpoint
 app.get('/health/detailed', async (req, res) => {
+  if (process.env.NODE_ENV === 'production') {
+    res.status(404).json({
+      status: 'unavailable',
+      message: 'Detailed health check is disabled in production'
+    });
+    return;
+  }
+
   try {
     const aemConnected = await aemClient.testConnection();
     const methods = mcpHandler.getAvailableMethods();
@@ -172,7 +180,6 @@ app.get('/health/detailed', async (req, res) => {
         connected: aemConnected,
         host: process.env.AEM_HOST || 'http://localhost:4502',
         credentials: {
-          username: process.env.AEM_SERVICE_USER || 'admin',
           configured: !!(process.env.AEM_SERVICE_USER && process.env.AEM_SERVICE_PASSWORD)
         }
       },
@@ -196,7 +203,7 @@ app.get('/health/detailed', async (req, res) => {
         corsEnabled: true
       }
     };
-    
+
     res.status(aemConnected ? 200 : 503).json(detailedHealth);
   } catch (error: any) {
     res.status(500).json({
