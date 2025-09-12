@@ -693,9 +693,34 @@ export class AEMConnector {
   async searchContent(params: any): Promise<object> {
     return safeExecute<object>(async () => {
       const client = this.createAxiosInstance();
-      const response = await client.get(this.config.aem.endpoints.query, { params });
+      const queryParams: any = { ...params };
+
+      const maxLimit = this.aemConfig.queries.maxLimit;
+      const defaultLimit = this.aemConfig.queries.defaultLimit;
+
+      let limit = queryParams.limit ?? queryParams['p.limit'];
+      if (limit === undefined || limit === null) {
+        limit = defaultLimit;
+      }
+      let limitNum = parseInt(limit as string, 10);
+      if (isNaN(limitNum) || limitNum <= 0) {
+        limitNum = defaultLimit;
+      }
+      limitNum = Math.min(limitNum, maxLimit);
+      if ('p.limit' in queryParams || !('limit' in queryParams)) {
+        queryParams['p.limit'] = limitNum.toString();
+        delete queryParams.limit;
+      } else {
+        queryParams.limit = limitNum;
+      }
+
+      if (queryParams.path && !isValidContentPath(queryParams.path, this.aemConfig)) {
+        queryParams.path = this.aemConfig.contentPaths.sitesRoot;
+      }
+
+      const response = await client.get(this.config.aem.endpoints.query, { params: queryParams });
       return createSuccessResponse({
-        params,
+        params: queryParams,
         results: response.data.hits || [],
         total: response.data.total || 0,
         rawResponse: response.data,
