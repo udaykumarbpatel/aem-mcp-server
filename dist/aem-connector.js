@@ -1,4 +1,6 @@
 import axios from 'axios';
+import http from 'http';
+import https from 'https';
 import dotenv from 'dotenv';
 import { getAEMConfig, isValidContentPath, isValidComponentType, isValidLocale } from './aem-config.js';
 import { createAEMError, handleAEMHttpError, safeExecute, validateComponentOperation, createSuccessResponse, AEM_ERROR_CODES } from './error-handler.js';
@@ -19,6 +21,15 @@ export class AEMConnector {
             this.config.aem.host = process.env.AEM_HOST;
             this.config.aem.author = process.env.AEM_HOST;
         }
+        const maxSockets = process.env.AEM_MAX_SOCKETS
+            ? parseInt(process.env.AEM_MAX_SOCKETS, 10)
+            : undefined;
+        const agentOptions = { keepAlive: true };
+        if (maxSockets && !isNaN(maxSockets)) {
+            agentOptions.maxSockets = maxSockets;
+        }
+        const httpAgent = new http.Agent(agentOptions);
+        const httpsAgent = new https.Agent(agentOptions);
         this.client = axios.create({
             baseURL: this.config.aem.host,
             auth: this.auth,
@@ -27,6 +38,8 @@ export class AEMConnector {
                 'Content-Type': 'application/json',
                 'Accept': 'application/json',
             },
+            httpAgent,
+            httpsAgent,
         });
     }
     loadConfig() {
