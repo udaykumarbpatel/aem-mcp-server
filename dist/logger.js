@@ -1,4 +1,4 @@
-import { appendFileSync, existsSync, mkdirSync } from 'fs';
+import { appendFileSync, existsSync, mkdirSync, statSync, renameSync, unlinkSync } from 'fs';
 import { join } from 'path';
 export var LogLevel;
 (function (LogLevel) {
@@ -68,17 +68,49 @@ export class Logger {
             return message;
         }
     }
+    checkRotation(filePath, nextEntry) {
+        if (!existsSync(filePath))
+            return;
+        try {
+            const stats = statSync(filePath);
+            if (stats.size + Buffer.byteLength(nextEntry, 'utf8') > this.config.maxFileSize) {
+                this.rotateLogs(filePath);
+            }
+        }
+        catch (error) {
+            console.error('Failed to check log file size:', error);
+        }
+    }
+    rotateLogs(filePath) {
+        const max = this.config.maxFiles;
+        const oldest = `${filePath}.${max}`;
+        if (existsSync(oldest)) {
+            unlinkSync(oldest);
+        }
+        for (let i = max - 1; i >= 1; i--) {
+            const src = `${filePath}.${i}`;
+            const dest = `${filePath}.${i + 1}`;
+            if (existsSync(src)) {
+                renameSync(src, dest);
+            }
+        }
+        if (existsSync(filePath)) {
+            renameSync(filePath, `${filePath}.1`);
+        }
+    }
     writeToFile(entry) {
         if (!this.config.enableFile)
             return;
         try {
             const message = this.formatMessage(entry) + '\n';
+            // Check if rotation needed for main log file before writing
+            this.checkRotation(this.logFilePath, message);
             appendFileSync(this.logFilePath, message, 'utf8');
             // Also write errors to separate error log
             if (entry.level === LogLevel.ERROR) {
+                this.checkRotation(this.errorFilePath, message);
                 appendFileSync(this.errorFilePath, message, 'utf8');
             }
-            // TODO: Implement log rotation based on file size
         }
         catch (error) {
             console.error('Failed to write to log file:', error);
