@@ -11,7 +11,7 @@ Reach out to me on [LinkedIn](https://www.linkedin.com/in/indrasish/) or [Email 
 [![TypeScript](https://img.shields.io/badge/typescript-5.8%2B-blue.svg)](https://www.typescriptlang.org/)
 [![MCP Protocol](https://img.shields.io/badge/MCP-1.15.0-green.svg)](https://modelcontextprotocol.io/)
 
-AEM MCP Server is a comprehensive, production-ready Model Context Protocol (MCP) server for Adobe Experience Manager (AEM). It provides 35+ robust REST/JSON-RPC API methods for complete content, component, asset, and template management, with advanced integrations for AI, chatbots, and automation workflows. This project is designed for AEM developers, content teams, and automation engineers who want to manage AEM programmatically or via natural language interfaces.
+AEM MCP Server is a comprehensive, production-ready Model Context Protocol (MCP) server for Adobe Experience Manager (AEM). It provides 37+ robust REST/JSON-RPC API methods for complete content, component, asset, and template management, with advanced integrations for AI, chatbots, and automation workflows. This project is designed for AEM developers, content teams, and automation engineers who want to manage AEM programmatically or via natural language interfaces.
 
 ---
 
@@ -43,10 +43,10 @@ AEM MCP Server is a comprehensive, production-ready Model Context Protocol (MCP)
 
 ## Features
 
-### 🚀 Core Capabilities (35+ Methods)
+### 🚀 Core Capabilities (37+ Methods)
 
-#### Page Operations (10 methods)
-- **Page Lifecycle**: Create, delete, activate/deactivate pages with proper template integration
+#### Page Operations (12 methods)
+- **Page Lifecycle**: Create, delete, move, copy, activate/deactivate pages with proper template integration
 - **Content Management**: Get page content, properties, text extraction, and image management
 - **Page Discovery**: List pages with depth control, pagination, and filtering
 - **Publishing**: Activate/deactivate pages with tree operations
@@ -160,7 +160,7 @@ curl -u admin:admin \
   }'
 ```
 
-#### 3. Update a component property
+#### 3. Move a page
 ```bash
 curl -u admin:admin \
   -X POST http://localhost:3001/mcp \
@@ -168,6 +168,38 @@ curl -u admin:admin \
   -d '{
     "jsonrpc": "2.0",
     "id": 3,
+    "method": "movePage",
+    "params": {
+      "srcPath": "/content/mysite/en/about",
+      "destPath": "/content/mysite/en/about-us"
+    }
+  }'
+```
+
+#### 4. Copy a page
+```bash
+curl -u admin:admin \
+  -X POST http://localhost:3001/mcp \
+  -H 'Content-Type: application/json' \
+  -d '{
+    "jsonrpc": "2.0",
+    "id": 4,
+    "method": "copyPage",
+    "params": {
+      "srcPath": "/content/mysite/en/about",
+      "destPath": "/content/mysite/en/about-copy"
+    }
+  }'
+```
+
+#### 5. Update a component property
+```bash
+curl -u admin:admin \
+  -X POST http://localhost:3001/mcp \
+  -H 'Content-Type: application/json' \
+  -d '{
+    "jsonrpc": "2.0",
+    "id": 5,
     "method": "updateComponent",
     "params": {
       "componentPath": "/content/mysite/en/home/jcr:content/root/container/text",
@@ -179,14 +211,14 @@ curl -u admin:admin \
   }'
 ```
 
-#### 4. Search for content
+#### 6. Search for content
 ```bash
 curl -u admin:admin \
   -X POST http://localhost:3001/mcp \
   -H 'Content-Type: application/json' \
   -d '{
     "jsonrpc": "2.0",
-    "id": 4,
+    "id": 6,
     "method": "searchContent",
     "params": {
       "type": "cq:Page",
@@ -197,14 +229,14 @@ curl -u admin:admin \
   }'
 ```
 
-#### 5. Upload an asset to DAM
+#### 7. Upload an asset to DAM
 ```bash
 curl -u admin:admin \
   -X POST http://localhost:3001/mcp \
   -H 'Content-Type: application/json' \
   -d '{
     "jsonrpc": "2.0",
-    "id": 5,
+    "id": 7,
     "method": "uploadAsset",
     "params": {
       "parentPath": "/content/dam/mysite/images",
@@ -248,6 +280,8 @@ curl -u admin:admin \
 #### Page Operations
 - `createPage` - Create pages with proper template integration
 - `deletePage` - Remove pages with force option
+- `movePage` - Move pages to new locations
+- `copyPage` - Duplicate pages to new locations
 - `listPages` - List pages with depth and pagination
 - `getPageContent` - Extract complete page content
 - `getPageProperties` - Get page metadata and properties

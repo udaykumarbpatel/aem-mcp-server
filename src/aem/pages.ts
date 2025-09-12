@@ -16,6 +16,8 @@ export const searchContent = (params: any) => aemClient.searchContent(params);
 export const executeJCRQuery = (query: string, limit?: number) => aemClient.executeJCRQuery(query, limit);
 export const createPage = (params: any) => aemClient.createPage(params);
 export const deletePage = (params: any) => aemClient.deletePage(params);
+export const movePage = (srcPath: string, destPath: string) => aemClient.movePage({ srcPath, destPath });
+export const copyPage = (srcPath: string, destPath: string) => aemClient.copyPage({ srcPath, destPath });
 export const unpublishContent = (params: any) => aemClient.unpublishContent(params);
 export const activatePage = (params: any) => aemClient.activatePage(params);
 export const deactivatePage = (params: any) => aemClient.deactivatePage(params);

@@ -1,6 +1,6 @@
 {
   "aemMcpMethods": {
-    "totalMethods": 35,
+    "totalMethods": 37,
     "categories": {
       "pageOperations": {
         "description": "Operations for managing AEM pages",
@@ -18,6 +18,22 @@
             "description": "Delete a page from AEM",
             "parameters": ["pagePath", "force"],
             "requiredParams": ["pagePath"],
+            "returnType": "object",
+            "category": "page"
+          },
+          {
+            "name": "movePage",
+            "description": "Move a page to a new location in AEM",
+            "parameters": ["srcPath", "destPath"],
+            "requiredParams": ["srcPath", "destPath"],
+            "returnType": "object",
+            "category": "page"
+          },
+          {
+            "name": "copyPage",
+            "description": "Copy a page to a new location in AEM",
+            "parameters": ["srcPath", "destPath"],
+            "requiredParams": ["srcPath", "destPath"],
             "returnType": "object",
             "category": "page"
           },
@@ -339,7 +355,7 @@
       }
     },
     "methodsByCategory": {
-      "page": 10,
+      "page": 12,
       "component": 7,
       "asset": 4,
       "search": 3,

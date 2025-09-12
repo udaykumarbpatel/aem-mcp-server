@@ -789,6 +789,84 @@ export class AEMConnector {
     }, 'deletePage');
   }
 
+  async movePage(request: any): Promise<object> {
+    return safeExecute<object>(async () => {
+      const { srcPath, destPath } = request;
+      if (
+        !isValidContentPath(srcPath, this.aemConfig) ||
+        !isValidContentPath(destPath, this.aemConfig)
+      ) {
+        throw createAEMError(
+          AEM_ERROR_CODES.INVALID_PARAMETERS,
+          `Invalid source or destination path: ${String(srcPath)} -> ${String(destPath)}`,
+          { srcPath, destPath }
+        );
+      }
+      const client = this.createAxiosInstance();
+      const formData = new URLSearchParams();
+      formData.append(':operation', 'move');
+      formData.append(':dest', destPath);
+      try {
+        const response = await client.post(srcPath, formData, {
+          headers: {
+            'Content-Type': 'application/x-www-form-urlencoded',
+          },
+        });
+        return createSuccessResponse(
+          {
+            success: true,
+            srcPath,
+            destPath,
+            response: response.data,
+            timestamp: new Date().toISOString(),
+          },
+          'movePage'
+        );
+      } catch (error: any) {
+        throw handleAEMHttpError(error, 'movePage');
+      }
+    }, 'movePage');
+  }
+
+  async copyPage(request: any): Promise<object> {
+    return safeExecute<object>(async () => {
+      const { srcPath, destPath } = request;
+      if (
+        !isValidContentPath(srcPath, this.aemConfig) ||
+        !isValidContentPath(destPath, this.aemConfig)
+      ) {
+        throw createAEMError(
+          AEM_ERROR_CODES.INVALID_PARAMETERS,
+          `Invalid source or destination path: ${String(srcPath)} -> ${String(destPath)}`,
+          { srcPath, destPath }
+        );
+      }
+      const client = this.createAxiosInstance();
+      const formData = new URLSearchParams();
+      formData.append(':operation', 'copy');
+      formData.append(':dest', destPath);
+      try {
+        const response = await client.post(srcPath, formData, {
+          headers: {
+            'Content-Type': 'application/x-www-form-urlencoded',
+          },
+        });
+        return createSuccessResponse(
+          {
+            success: true,
+            srcPath,
+            destPath,
+            response: response.data,
+            timestamp: new Date().toISOString(),
+          },
+          'copyPage'
+        );
+      } catch (error: any) {
+        throw handleAEMHttpError(error, 'copyPage');
+      }
+    }, 'copyPage');
+  }
+
   async createComponent(request: any): Promise<object> {
     return safeExecute<object>(async () => {
       const { pagePath, componentType, resourceType, properties = {}, name } = request;
