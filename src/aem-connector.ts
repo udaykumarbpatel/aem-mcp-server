@@ -1674,6 +1674,9 @@ export class AEMConnector {
         // Recursive function to copy nested structures
         const copyStructure = async (sourceData: any, targetPath: string) => {
           const entries = Object.entries(sourceData);
+
+          // Build form data for the current node's properties
+          const nodeFormData = new URLSearchParams();
           for (const [key, value] of entries) {
             // Skip JCR metadata properties that are auto-generated
             if (key.startsWith('jcr:') && key !== 'jcr:primaryType') {
@@ -1683,47 +1686,59 @@ export class AEMConnector {
               continue; // Already set at root level
             }
 
-            const fullTargetPath = `${targetPath}/${key}`;
-            if (typeof value === 'object' && value !== null && !Array.isArray(value)) {
-              // Create nested node
-              const nodeFormData = new URLSearchParams();
-              type JcrNode = Record<string, unknown>;
-              const v = value as JcrNode;
-              const jcrPrimary = typeof v['jcr:primaryType'] === 'string' ? (v['jcr:primaryType'] as string) : 'nt:unstructured';
-              nodeFormData.append('jcr:primaryType', jcrPrimary);
+            const isChildNode =
+              value &&
+              typeof value === 'object' &&
+              !Array.isArray(value) &&
+              Object.prototype.hasOwnProperty.call(value, 'jcr:primaryType');
 
-              // Append only primitive properties
-              Object.entries(value).forEach(([subKey, subValue]) => {
-                if (subKey.startsWith('jcr:') && subKey !== 'jcr:primaryType') {
-                  return;
-                }
-                if (typeof subValue !== 'object' || subValue === null || Array.isArray(subValue)) {
-                  nodeFormData.append(subKey, String(subValue));
+            if (isChildNode) {
+              // Child nodes handled separately
+              continue;
+            }
+
+            if (typeof value === 'object' && value !== null) {
+              nodeFormData.append(key, JSON.stringify(value));
+            } else {
+              nodeFormData.append(key, String(value));
+            }
+          }
+
+          // Post properties for this node (create or update)
+          if ([...nodeFormData.keys()].length > 0) {
+            try {
+              await client.post(targetPath, nodeFormData, {
+                headers: {
+                  'Content-Type': 'application/x-www-form-urlencoded'
                 }
               });
-
+            } catch (postError: any) {
               try {
-                await client.post(fullTargetPath, nodeFormData, {
+                await client.post(targetPath, nodeFormData, {
                   headers: {
                     'Content-Type': 'application/x-www-form-urlencoded'
                   }
                 });
-              } catch (postError: any) {
-                // Node might already exist, try updating instead
-                try {
-                  await client.post(fullTargetPath, nodeFormData, {
-                    headers: {
-                      'Content-Type': 'application/x-www-form-urlencoded'
-                    }
-                  });
-                } catch (updateError) {
-                  // Silently fail for individual node creation issues
-                }
+              } catch (updateError) {
+                // Silently fail for individual node creation issues
               }
-
-              // Recursively copy child structures
-              await copyStructure(value, fullTargetPath);
             }
+          }
+
+          // Process child nodes
+          for (const [key, value] of entries) {
+            const isChildNode =
+              value &&
+              typeof value === 'object' &&
+              !Array.isArray(value) &&
+              Object.prototype.hasOwnProperty.call(value, 'jcr:primaryType');
+
+            if (!isChildNode) {
+              continue;
+            }
+
+            const fullTargetPath = `${targetPath}/${key}`;
+            await copyStructure(value, fullTargetPath);
           }
         };
 
