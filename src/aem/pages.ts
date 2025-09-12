@@ -1,0 +1,23 @@
+import { aemClient } from './client.js';
+
+export const fetchSites = () => aemClient.fetchSites();
+export const fetchLanguageMasters = (site: string) => aemClient.fetchLanguageMasters(site);
+export const fetchAvailableLocales = (site: string, languageMasterPath: string) => aemClient.fetchAvailableLocales(site, languageMasterPath);
+export const replicateAndPublish = (selectedLocales: any, componentData: any, localizedOverrides: any) => aemClient.replicateAndPublish(selectedLocales, componentData, localizedOverrides);
+export const getAllTextContent = (pagePath: string) => aemClient.getAllTextContent(pagePath);
+export const getPageTextContent = (pagePath: string) => aemClient.getPageTextContent(pagePath);
+export const getPageImages = (pagePath: string) => aemClient.getPageImages(pagePath);
+export const getPageContent = (pagePath: string) => aemClient.getPageContent(pagePath);
+export const listPages = (siteRoot: string, depth?: number, limit?: number) => aemClient.listPages(siteRoot, depth, limit);
+export const getNodeContent = (path: string, depth?: number) => aemClient.getNodeContent(path, depth);
+export const listChildren = (path: string) => aemClient.listChildren(path);
+export const getPageProperties = (pagePath: string) => aemClient.getPageProperties(pagePath);
+export const searchContent = (params: any) => aemClient.searchContent(params);
+export const executeJCRQuery = (query: string, limit?: number) => aemClient.executeJCRQuery(query, limit);
+export const createPage = (params: any) => aemClient.createPage(params);
+export const deletePage = (params: any) => aemClient.deletePage(params);
+export const unpublishContent = (params: any) => aemClient.unpublishContent(params);
+export const activatePage = (params: any) => aemClient.activatePage(params);
+export const deactivatePage = (params: any) => aemClient.deactivatePage(params);
+export const getTemplates = (sitePath: string) => aemClient.getTemplates(sitePath);
+export const getTemplateStructure = (templatePath: string) => aemClient.getTemplateStructure(templatePath);
