@@ -1,92 +1,90 @@
-import { AEMConnector } from './aem-connector.js';
+import * as components from './aem/components.js';
+import * as pages from './aem/pages.js';
+import * as assets from './aem/assets.js';
 
 export class MCPRequestHandler {
-  aemConnector: AEMConnector;
-
-  constructor(aemConnector: AEMConnector) {
-    this.aemConnector = aemConnector;
-  }
+  constructor() {}
 
   async handleRequest(method: string, params: any) {
     try {
       switch (method) {
         case 'validateComponent':
-          return await this.aemConnector.validateComponent(params);
+          return await components.validateComponent(params);
         case 'updateComponent':
-          return await this.aemConnector.updateComponent(params);
+          return await components.updateComponent(params);
         case 'undoChanges':
-          return await this.aemConnector.undoChanges(params);
+          return await components.undoChanges(params);
         case 'scanPageComponents':
-          return await this.aemConnector.scanPageComponents(params.pagePath);
+          return await components.scanPageComponents(params.pagePath);
         case 'fetchSites':
-          return await this.aemConnector.fetchSites();
+          return await pages.fetchSites();
         case 'fetchLanguageMasters':
-          return await this.aemConnector.fetchLanguageMasters(params.site);
+          return await pages.fetchLanguageMasters(params.site);
         case 'fetchAvailableLocales':
-          return await this.aemConnector.fetchAvailableLocales(params.site, params.languageMasterPath);
+          return await pages.fetchAvailableLocales(params.site, params.languageMasterPath);
         case 'replicateAndPublish':
-          return await this.aemConnector.replicateAndPublish(params.selectedLocales, params.componentData, params.localizedOverrides);
+          return await pages.replicateAndPublish(params.selectedLocales, params.componentData, params.localizedOverrides);
         case 'getAllTextContent':
-          return await this.aemConnector.getAllTextContent(params.pagePath);
+          return await pages.getAllTextContent(params.pagePath);
         case 'getPageTextContent':
-          return await this.aemConnector.getPageTextContent(params.pagePath);
+          return await pages.getPageTextContent(params.pagePath);
         case 'getPageImages':
-          return await this.aemConnector.getPageImages(params.pagePath);
+          return await pages.getPageImages(params.pagePath);
         case 'updateImagePath':
-          return await this.aemConnector.updateImagePath(params.componentPath, params.newImagePath);
+          return await components.updateImagePath(params.componentPath, params.newImagePath);
         case 'getPageContent':
-          return await this.aemConnector.getPageContent(params.pagePath);
+          return await pages.getPageContent(params.pagePath);
         case 'listPages':
-          return await this.aemConnector.listPages(params.siteRoot || params.path || '/content', params.depth || 1, params.limit || 20);
+          return await pages.listPages(params.siteRoot || params.path || '/content', params.depth || 1, params.limit || 20);
         case 'getNodeContent':
-          return await this.aemConnector.getNodeContent(params.path, params.depth || 1);
+          return await pages.getNodeContent(params.path, params.depth || 1);
         case 'listChildren':
-          return await this.aemConnector.listChildren(params.path);
+          return await pages.listChildren(params.path);
         case 'getPageProperties':
-          return await this.aemConnector.getPageProperties(params.pagePath);
+          return await pages.getPageProperties(params.pagePath);
         case 'searchContent':
-          return await this.aemConnector.searchContent(params);
+          return await pages.searchContent(params);
         case 'executeJCRQuery':
-          return await this.aemConnector.executeJCRQuery(params.query, params.limit);
+          return await pages.executeJCRQuery(params.query, params.limit);
         case 'getAssetMetadata':
-          return await this.aemConnector.getAssetMetadata(params.assetPath);
+          return await assets.getAssetMetadata(params.assetPath);
         case 'getStatus':
           return this.getWorkflowStatus(params.workflowId);
         case 'listMethods':
           return { methods: this.getAvailableMethods() };
         case 'enhancedPageSearch':
-          return await this.aemConnector.searchContent({
+          return await pages.searchContent({
             fulltext: params.searchTerm,
             path: params.basePath,
             type: 'cq:Page',
             limit: 20
           });
         case 'createPage':
-          return await this.aemConnector.createPage(params);
+          return await pages.createPage(params);
         case 'deletePage':
-          return await this.aemConnector.deletePage(params);
+          return await pages.deletePage(params);
         case 'createComponent':
-          return await this.aemConnector.createComponent(params);
+          return await components.createComponent(params);
         case 'deleteComponent':
-          return await this.aemConnector.deleteComponent(params);
+          return await components.deleteComponent(params);
         case 'unpublishContent':
-          return await this.aemConnector.unpublishContent(params);
+          return await pages.unpublishContent(params);
         case 'activatePage':
-          return await this.aemConnector.activatePage(params);
+          return await pages.activatePage(params);
         case 'deactivatePage':
-          return await this.aemConnector.deactivatePage(params);
+          return await pages.deactivatePage(params);
         case 'uploadAsset':
-          return await this.aemConnector.uploadAsset(params);
+          return await assets.uploadAsset(params);
         case 'updateAsset':
-          return await this.aemConnector.updateAsset(params);
+          return await assets.updateAsset(params);
         case 'deleteAsset':
-          return await this.aemConnector.deleteAsset(params);
+          return await assets.deleteAsset(params);
         case 'getTemplates':
-          return await this.aemConnector.getTemplates(params.sitePath);
+          return await pages.getTemplates(params.sitePath);
         case 'getTemplateStructure':
-          return await this.aemConnector.getTemplateStructure(params.templatePath);
+          return await pages.getTemplateStructure(params.templatePath);
         case 'bulkUpdateComponents':
-          return await this.aemConnector.bulkUpdateComponents(params);
+          return await components.bulkUpdateComponents(params);
         default:
           throw new Error(`Unknown method: ${method}`);
       }

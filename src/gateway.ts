@@ -3,8 +3,8 @@ import cors from 'cors';
 import { join, dirname } from 'path';
 import { fileURLToPath } from 'url';
 import dotenv from 'dotenv';
-import { AEMConnector } from './aem-connector.js';
 import { MCPRequestHandler } from './mcp-handler.js';
+import { aemClient } from './aem/client.js';
 import { logger, loggingMiddleware, generateRequestId } from './logger.js';
 import swaggerUi from 'swagger-ui-express';
 import swaggerJSDoc from 'swagger-jsdoc';
@@ -46,8 +46,7 @@ if (process.env.MCP_USERNAME && process.env.MCP_PASSWORD) {
   app.use('/mcp', basicAuth);
 }
 
-const aemConnector = new AEMConnector();
-const mcpHandler = new MCPRequestHandler(aemConnector);
+const mcpHandler = new MCPRequestHandler();
 
 // Method validation middleware
 const validateMethod = (req: Request, res: Response, next: NextFunction) => {
@@ -121,7 +120,7 @@ const handleError = (error: any, req: Request, res: Response, next: NextFunction
 // Enhanced health check endpoint
 app.get('/health', async (req, res) => {
   try {
-    const aemConnected = await aemConnector.testConnection();
+    const aemConnected = await aemClient.testConnection();
     const healthData = {
       status: aemConnected ? 'healthy' : 'degraded',
       aem: {
@@ -159,7 +158,7 @@ app.get('/health', async (req, res) => {
 // Detailed health check endpoint
 app.get('/health/detailed', async (req, res) => {
   try {
-    const aemConnected = await aemConnector.testConnection();
+    const aemConnected = await aemClient.testConnection();
     const methods = mcpHandler.getAvailableMethods();
     
     const detailedHealth = {

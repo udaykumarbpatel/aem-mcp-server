@@ -34,6 +34,7 @@ export class AEMConnector {
   config: AEMConnectorConfig;
   auth: { username: string; password: string };
   aemConfig: AEMConfig;
+  client: AxiosInstance;
 
   constructor() {
     this.config = this.loadConfig();
@@ -46,6 +47,16 @@ export class AEMConnector {
       this.config.aem.host = process.env.AEM_HOST;
       this.config.aem.author = process.env.AEM_HOST;
     }
+
+    this.client = axios.create({
+      baseURL: this.config.aem.host,
+      auth: this.auth,
+      timeout: 30000,
+      headers: {
+        'Content-Type': 'application/json',
+        'Accept': 'application/json',
+      },
+    });
   }
 
   loadConfig(): AEMConnectorConfig {
@@ -74,15 +85,7 @@ export class AEMConnector {
   }
 
   createAxiosInstance(): AxiosInstance {
-    return axios.create({
-      baseURL: this.config.aem.host,
-      auth: this.auth,
-      timeout: 30000,
-      headers: {
-        'Content-Type': 'application/json',
-        'Accept': 'application/json',
-      },
-    });
+    return this.client;
   }
 
   async testConnection(): Promise<boolean> {
