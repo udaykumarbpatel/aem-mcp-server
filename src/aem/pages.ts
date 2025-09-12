@@ -3,7 +3,7 @@ import { aemClient } from './client.js';
 export const fetchSites = () => aemClient.fetchSites();
 export const fetchLanguageMasters = (site: string) => aemClient.fetchLanguageMasters(site);
 export const fetchAvailableLocales = (site: string, languageMasterPath: string) => aemClient.fetchAvailableLocales(site, languageMasterPath);
-export const replicateAndPublish = (selectedLocales: any, componentData: any, localizedOverrides: any) => aemClient.replicateAndPublish(selectedLocales, componentData, localizedOverrides);
+export const replicateAndPublish = (params: any) => aemClient.replicateAndPublish(params);
 export const getAllTextContent = (pagePath: string) => aemClient.getAllTextContent(pagePath);
 export const getPageTextContent = (pagePath: string) => aemClient.getPageTextContent(pagePath);
 export const getPageImages = (pagePath: string) => aemClient.getPageImages(pagePath);

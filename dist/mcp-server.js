@@ -92,15 +92,14 @@ const tools = [
     },
     {
         name: 'replicateAndPublish',
-        description: 'Replicate and publish content to selected locales',
+        description: 'Activate content paths using AEM replication',
         inputSchema: {
             type: 'object',
             properties: {
-                selectedLocales: { type: 'array', items: { type: 'string' } },
-                componentData: { type: 'object' },
-                localizedOverrides: { type: 'object' },
+                contentPaths: { type: 'array', items: { type: 'string' } },
+                publishTree: { type: 'boolean' },
             },
-            required: ['selectedLocales', 'componentData'],
+            required: ['contentPaths'],
         },
     },
     {
@@ -478,7 +477,7 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
                 return { content: [{ type: 'text', text: JSON.stringify(result, null, 2) }] };
             }
             case 'replicateAndPublish': {
-                const result = await aemConnector.replicateAndPublish(args.selectedLocales, args.componentData, args.localizedOverrides);
+                const result = await aemConnector.replicateAndPublish(args);
                 return { content: [{ type: 'text', text: JSON.stringify(result, null, 2) }] };
             }
             case 'getAllTextContent': {

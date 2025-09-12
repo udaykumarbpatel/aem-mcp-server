@@ -381,14 +381,11 @@ export const replicationOperationsTests: TestCase[] = [
   {
     id: 'repl-001',
     methodName: 'replicateAndPublish',
-    description: 'Simulate replication and publish',
+    description: 'Replicate and publish test content',
     category: 'replication',
     parameters: {
-      selectedLocales: ['en_US'],
-      componentData: {
-        text: 'Test content for replication'
-      },
-      localizedOverrides: {}
+      contentPaths: ['/content/we-retail/us/en/mcp-test-page'],
+      publishTree: false
     }
   },
   {

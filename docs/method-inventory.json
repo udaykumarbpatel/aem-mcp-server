@@ -269,9 +269,9 @@
         "methods": [
           {
             "name": "replicateAndPublish",
-            "description": "Replicate and publish content to selected locales",
-            "parameters": ["selectedLocales", "componentData", "localizedOverrides"],
-            "requiredParams": ["selectedLocales", "componentData"],
+            "description": "Activate content paths using AEM replication APIs",
+            "parameters": ["contentPaths", "publishTree"],
+            "requiredParams": ["contentPaths"],
             "returnType": "object",
             "category": "replication"
           },
@@ -353,7 +353,7 @@
       "createPageIssue": "Current implementation creates empty pages without proper jcr:content nodes, making them invisible in AEM Author mode",
       "undoChangesNotImplemented": "Method exists but not implemented - recommends using AEM version history",
       "getStatusMocked": "Returns mock 'completed' status for all workflow IDs",
-      "replicationSimulated": "Replication logic is currently simulated"
+      "replicateAndPublishUsesReplicationServlet": "replicateAndPublish uses /bin/replicate.json with WCM Command fallback"
     }
   }
 }

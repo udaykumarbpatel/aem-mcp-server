@@ -356,14 +356,67 @@ export class AEMConnector {
     }, 'fetchAvailableLocales');
   }
 
-  async replicateAndPublish(selectedLocales: any, componentData: any, localizedOverrides: any): Promise<object> {
-    // Simulate replication logic for now
+  async replicateAndPublish(request: any): Promise<object> {
     return safeExecute<object>(async () => {
+      const { contentPaths, publishTree = false } = request;
+      if (!contentPaths || (Array.isArray(contentPaths) && contentPaths.length === 0)) {
+        throw createAEMError(AEM_ERROR_CODES.INVALID_PARAMETERS, 'Content paths array is required and cannot be empty', { contentPaths });
+      }
+
+      const client = this.createAxiosInstance();
+      const results: any[] = [];
+
+      for (const path of Array.isArray(contentPaths) ? contentPaths : [contentPaths]) {
+        try {
+          // Use AEM replication servlet
+          const formData = new URLSearchParams();
+          formData.append('cmd', 'Activate');
+          formData.append('path', path);
+          formData.append('ignoredeactivated', 'false');
+          formData.append('onlymodified', 'false');
+          if (publishTree) {
+            formData.append('deep', 'true');
+          }
+
+          const response = await client.post('/bin/replicate.json', formData, {
+            headers: {
+              'Content-Type': 'application/x-www-form-urlencoded',
+            },
+          });
+
+          results.push({ path, success: true, response: response.data });
+        } catch (error: any) {
+          try {
+            // Fallback to WCM command servlet
+            const wcmResponse = await client.post('/bin/wcmcommand', {
+              cmd: 'activate',
+              path,
+              ignoredeactivated: false,
+              onlymodified: false,
+            });
+
+            results.push({ path, success: true, response: wcmResponse.data, fallbackUsed: 'WCM Command' });
+          } catch (fallbackError: any) {
+            const handled = handleAEMHttpError(fallbackError, 'replicateAndPublish');
+            results.push({
+              path,
+              success: false,
+              error: {
+                code: handled.code,
+                message: handled.message,
+                details: handled.details,
+              },
+            });
+          }
+        }
+      }
+
       return createSuccessResponse({
-        message: 'Replication simulated',
-        selectedLocales,
-        componentData,
-        localizedOverrides,
+        success: results.every(r => r.success),
+        results,
+        publishedPaths: contentPaths,
+        publishTree,
+        timestamp: new Date().toISOString(),
       }, 'replicateAndPublish');
     }, 'replicateAndPublish');
   }

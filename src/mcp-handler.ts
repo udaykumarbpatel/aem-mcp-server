@@ -24,7 +24,7 @@ export class MCPRequestHandler {
         case 'fetchAvailableLocales':
           return await pages.fetchAvailableLocales(params.site, params.languageMasterPath);
         case 'replicateAndPublish':
-          return await pages.replicateAndPublish(params.selectedLocales, params.componentData, params.localizedOverrides);
+          return await pages.replicateAndPublish(params);
         case 'getAllTextContent':
           return await pages.getAllTextContent(params.pagePath);
         case 'getPageTextContent':
@@ -113,7 +113,7 @@ export class MCPRequestHandler {
       { name: 'fetchSites', description: 'Get all available sites in AEM', parameters: [] },
       { name: 'fetchLanguageMasters', description: 'Get language masters for a specific site', parameters: ['site'] },
       { name: 'fetchAvailableLocales', description: 'Get available locales for a site and language master', parameters: ['site', 'languageMasterPath'] },
-      { name: 'replicateAndPublish', description: 'Replicate and publish content to selected locales', parameters: ['selectedLocales', 'componentData', 'localizedOverrides'] },
+      { name: 'replicateAndPublish', description: 'Activate content paths using AEM replication', parameters: ['contentPaths', 'publishTree'] },
       { name: 'getAllTextContent', description: 'Get all text content from a page including titles, text components, and descriptions', parameters: ['pagePath'] },
       { name: 'getPageTextContent', description: 'Get text content from a specific page', parameters: ['pagePath'] },
       { name: 'getPageImages', description: 'Get all images from a page, including those within Experience Fragments', parameters: ['pagePath'] },

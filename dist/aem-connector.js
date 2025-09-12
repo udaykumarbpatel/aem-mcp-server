@@ -322,14 +322,63 @@ export class AEMConnector {
             }, 'fetchAvailableLocales');
         }, 'fetchAvailableLocales');
     }
-    async replicateAndPublish(selectedLocales, componentData, localizedOverrides) {
-        // Simulate replication logic for now
+    async replicateAndPublish(request) {
         return safeExecute(async () => {
+            const { contentPaths, publishTree = false } = request;
+            if (!contentPaths || (Array.isArray(contentPaths) && contentPaths.length === 0)) {
+                throw createAEMError(AEM_ERROR_CODES.INVALID_PARAMETERS, 'Content paths array is required and cannot be empty', { contentPaths });
+            }
+            const client = this.createAxiosInstance();
+            const results = [];
+            for (const path of Array.isArray(contentPaths) ? contentPaths : [contentPaths]) {
+                try {
+                    // Use AEM replication servlet
+                    const formData = new URLSearchParams();
+                    formData.append('cmd', 'Activate');
+                    formData.append('path', path);
+                    formData.append('ignoredeactivated', 'false');
+                    formData.append('onlymodified', 'false');
+                    if (publishTree) {
+                        formData.append('deep', 'true');
+                    }
+                    const response = await client.post('/bin/replicate.json', formData, {
+                        headers: {
+                            'Content-Type': 'application/x-www-form-urlencoded',
+                        },
+                    });
+                    results.push({ path, success: true, response: response.data });
+                }
+                catch (error) {
+                    try {
+                        // Fallback to WCM command servlet
+                        const wcmResponse = await client.post('/bin/wcmcommand', {
+                            cmd: 'activate',
+                            path,
+                            ignoredeactivated: false,
+                            onlymodified: false,
+                        });
+                        results.push({ path, success: true, response: wcmResponse.data, fallbackUsed: 'WCM Command' });
+                    }
+                    catch (fallbackError) {
+                        const handled = handleAEMHttpError(fallbackError, 'replicateAndPublish');
+                        results.push({
+                            path,
+                            success: false,
+                            error: {
+                                code: handled.code,
+                                message: handled.message,
+                                details: handled.details,
+                            },
+                        });
+                    }
+                }
+            }
             return createSuccessResponse({
-                message: 'Replication simulated',
-                selectedLocales,
-                componentData,
-                localizedOverrides,
+                success: results.every(r => r.success),
+                results,
+                publishedPaths: contentPaths,
+                publishTree,
+                timestamp: new Date().toISOString(),
             }, 'replicateAndPublish');
         }, 'replicateAndPublish');
     }
@@ -639,9 +688,31 @@ export class AEMConnector {
     async searchContent(params) {
         return safeExecute(async () => {
             const client = this.createAxiosInstance();
-            const response = await client.get(this.config.aem.endpoints.query, { params });
+            const queryParams = { ...params };
+            const maxLimit = this.aemConfig.queries.maxLimit;
+            const defaultLimit = this.aemConfig.queries.defaultLimit;
+            let limit = queryParams.limit ?? queryParams['p.limit'];
+            if (limit === undefined || limit === null) {
+                limit = defaultLimit;
+            }
+            let limitNum = parseInt(limit, 10);
+            if (isNaN(limitNum) || limitNum <= 0) {
+                limitNum = defaultLimit;
+            }
+            limitNum = Math.min(limitNum, maxLimit);
+            if ('p.limit' in queryParams || !('limit' in queryParams)) {
+                queryParams['p.limit'] = limitNum.toString();
+                delete queryParams.limit;
+            }
+            else {
+                queryParams.limit = limitNum;
+            }
+            if (queryParams.path && !isValidContentPath(queryParams.path, this.aemConfig)) {
+                queryParams.path = this.aemConfig.contentPaths.sitesRoot;
+            }
+            const response = await client.get(this.config.aem.endpoints.query, { params: queryParams });
             return createSuccessResponse({
-                params,
+                params: queryParams,
                 results: response.data.hits || [],
                 total: response.data.total || 0,
                 rawResponse: response.data,

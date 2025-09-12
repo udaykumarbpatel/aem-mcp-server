@@ -79,7 +79,7 @@ class ComprehensiveTestRunner {
       {
         name: 'Replication Operations',
         tests: [
-          { name: 'replicateAndPublish', params: { selectedLocales: ['en'], componentData: { text: 'test' } } },
+          { name: 'replicateAndPublish', params: { contentPaths: ['/content/test'], publishTree: false } },
           { name: 'activatePage', params: { pagePath: '/content/test' } },
           { name: 'deactivatePage', params: { pagePath: '/content/test' } },
           { name: 'unpublishContent', params: { contentPaths: ['/content/test'] } },
