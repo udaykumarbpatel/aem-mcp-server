@@ -7,6 +7,7 @@ export class AEMConnector {
     config;
     auth;
     aemConfig;
+    client;
     constructor() {
         this.config = this.loadConfig();
         this.aemConfig = getAEMConfig();
@@ -18,6 +19,15 @@ export class AEMConnector {
             this.config.aem.host = process.env.AEM_HOST;
             this.config.aem.author = process.env.AEM_HOST;
         }
+        this.client = axios.create({
+            baseURL: this.config.aem.host,
+            auth: this.auth,
+            timeout: 30000,
+            headers: {
+                'Content-Type': 'application/json',
+                'Accept': 'application/json',
+            },
+        });
     }
     loadConfig() {
         return {
@@ -44,36 +54,23 @@ export class AEMConnector {
         };
     }
     createAxiosInstance() {
-        return axios.create({
-            baseURL: this.config.aem.host,
-            auth: this.auth,
-            timeout: 30000,
-            headers: {
-                'Content-Type': 'application/json',
-                'Accept': 'application/json',
-            },
-        });
+        return this.client;
     }
     async testConnection() {
         try {
-            // eslint-disable-next-line no-console
             console.log('Testing AEM connection to:', this.config.aem.host);
             const client = this.createAxiosInstance();
             const response = await client.get('/libs/granite/core/content/login.html', {
                 timeout: 5000,
                 validateStatus: (status) => status < 500,
             });
-            // eslint-disable-next-line no-console
             console.log('✅ AEM connection successful! Status:', response.status);
             return true;
         }
         catch (error) {
-            // eslint-disable-next-line no-console
             console.error('❌ AEM connection failed:', error.message);
             if (error.response) {
-                // eslint-disable-next-line no-console
                 console.error('   Status:', error.response.status);
-                // eslint-disable-next-line no-console
                 console.error('   URL:', error.config?.url);
             }
             return false;

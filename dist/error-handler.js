@@ -81,7 +81,6 @@ export async function safeExecute(operation, operationName, maxRetries = 3) {
                 break;
             }
             const delay = lastError.retryAfter || Math.pow(2, attempt) * 1000;
-            // eslint-disable-next-line no-console
             console.warn(`[${operationName}] Attempt ${attempt} failed, retrying in ${delay}ms:`, lastError.message);
             await new Promise(resolve => setTimeout(resolve, delay));
         }

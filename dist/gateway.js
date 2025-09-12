@@ -3,13 +3,14 @@ import cors from 'cors';
 import { join, dirname } from 'path';
 import { fileURLToPath } from 'url';
 import dotenv from 'dotenv';
-import { AEMConnector } from './aem-connector.js';
 import { MCPRequestHandler } from './mcp-handler.js';
+import { aemClient } from './aem/client.js';
 import { logger, loggingMiddleware, generateRequestId } from './logger.js';
 import swaggerUi from 'swagger-ui-express';
 import swaggerJSDoc from 'swagger-jsdoc';
 // import llmRouter from './llm-integration.js';
 // import telegramIntegration from './telegram-integration.js';
+import { categorizeMethods } from './utils/method-categorizer.js';
 dotenv.config();
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
@@ -40,8 +41,7 @@ const basicAuth = (req, res, next) => {
 if (process.env.MCP_USERNAME && process.env.MCP_PASSWORD) {
     app.use('/mcp', basicAuth);
 }
-const aemConnector = new AEMConnector();
-const mcpHandler = new MCPRequestHandler(aemConnector);
+const mcpHandler = new MCPRequestHandler();
 // Method validation middleware
 const validateMethod = (req, res, next) => {
     const { method, params } = req.body;
@@ -104,7 +104,7 @@ const handleError = (error, req, res, next) => {
 // Enhanced health check endpoint
 app.get('/health', async (req, res) => {
     try {
-        const aemConnected = await aemConnector.testConnection();
+        const aemConnected = await aemClient.testConnection();
         const healthData = {
             status: aemConnected ? 'healthy' : 'degraded',
             aem: {
@@ -141,8 +141,9 @@ app.get('/health', async (req, res) => {
 // Detailed health check endpoint
 app.get('/health/detailed', async (req, res) => {
     try {
-        const aemConnected = await aemConnector.testConnection();
+        const aemConnected = await aemClient.testConnection();
         const methods = mcpHandler.getAvailableMethods();
+        const methodsByCategory = Object.fromEntries(Object.entries(categorizeMethods(methods)).map(([category, list]) => [category, list.length]));
         const detailedHealth = {
             status: aemConnected ? 'healthy' : 'degraded',
             timestamp: new Date().toISOString(),
@@ -157,13 +158,7 @@ app.get('/health/detailed', async (req, res) => {
             mcp: {
                 status: 'ready',
                 methodCount: methods.length,
-                methodsByCategory: methods.reduce((acc, method) => {
-                    const category = method.name.includes('Page') ? 'page' :
-                        method.name.includes('Component') ? 'component' :
-                            method.name.includes('Asset') ? 'asset' : 'other';
-                    acc[category] = (acc[category] || 0) + 1;
-                    return acc;
-                }, {}),
+                methodsByCategory,
                 version: '1.0.0'
             },
             server: {
@@ -241,20 +236,7 @@ app.get('/mcp/methods', async (req, res) => {
 app.get('/api/methods', async (req, res) => {
     try {
         const methods = mcpHandler.getAvailableMethods();
-        const categorizedMethods = methods.reduce((acc, method) => {
-            const category = method.name.includes('Page') ? 'page' :
-                method.name.includes('Component') ? 'component' :
-                    method.name.includes('Asset') ? 'asset' :
-                        method.name.includes('Template') ? 'template' :
-                            method.name.includes('search') || method.name.includes('Search') ? 'search' :
-                                method.name.includes('Site') || method.name.includes('Language') || method.name.includes('Locale') ? 'site' :
-                                    method.name.includes('publish') || method.name.includes('activate') || method.name.includes('replicate') ? 'replication' :
-                                        method.name.includes('Node') || method.name.includes('Children') ? 'legacy' : 'utility';
-            if (!acc[category])
-                acc[category] = [];
-            acc[category].push(method);
-            return acc;
-        }, {});
+        const categorizedMethods = categorizeMethods(methods);
         res.json({
             success: true,
             data: {
@@ -488,7 +470,6 @@ app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(openapiSpec));
 app.get('/openapi.json', (req, res) => { res.json(openapiSpec); });
 export async function startGateway() {
     app.listen(GATEWAY_PORT, () => {
-        // eslint-disable-next-line no-console
         console.error(`🚀 AEM MCP Gateway Server running on port ${GATEWAY_PORT}`);
     });
 }
