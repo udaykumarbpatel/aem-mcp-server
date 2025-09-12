@@ -2,6 +2,7 @@ import { Server } from '@modelcontextprotocol/sdk/server/index.js';
 import { StdioServerTransport } from '@modelcontextprotocol/sdk/server/stdio.js';
 import { CallToolRequestSchema, ListToolsRequestSchema } from '@modelcontextprotocol/sdk/types.js';
 import { AEMConnector } from './aem-connector.js';
+import { logger, generateRequestId } from './logger.js';
 import dotenv from 'dotenv';
 dotenv.config();
 const aemConnector = new AEMConnector();
@@ -431,7 +432,12 @@ server.setRequestHandler(ListToolsRequestSchema, async () => {
 });
 server.setRequestHandler(CallToolRequestSchema, async (request) => {
     const { name, arguments: args } = request.params;
+    const requestId = generateRequestId();
+    const startTime = Date.now();
+    logger.methodStart(name, args, requestId);
     if (!args) {
+        const duration = Date.now() - startTime;
+        logger.methodError(name, new Error('No arguments provided'), duration, requestId);
         return {
             content: [
                 { type: 'text', text: 'Error: No arguments provided' },
@@ -439,178 +445,185 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
             isError: true,
         };
     }
+    let result;
     try {
         switch (name) {
             case 'validateComponent': {
-                const result = await aemConnector.validateComponent({
+                result = await aemConnector.validateComponent({
                     locale: args.locale,
                     page_path: args.pagePath,
                     component: args.component,
                     props: args.props,
                 });
-                return { content: [{ type: 'text', text: JSON.stringify(result, null, 2) }] };
+                break;
             }
             case 'updateComponent': {
-                const result = await aemConnector.updateComponent(args);
-                return { content: [{ type: 'text', text: JSON.stringify(result, null, 2) }] };
+                result = await aemConnector.updateComponent(args);
+                break;
             }
             case 'undoChanges': {
-                const result = await aemConnector.undoChanges(args);
-                return { content: [{ type: 'text', text: JSON.stringify(result, null, 2) }] };
+                result = await aemConnector.undoChanges(args);
+                break;
             }
             case 'scanPageComponents': {
                 const pagePath = args.pagePath;
-                const result = await aemConnector.scanPageComponents(pagePath);
-                return { content: [{ type: 'text', text: JSON.stringify(result, null, 2) }] };
+                result = await aemConnector.scanPageComponents(pagePath);
+                break;
             }
             case 'fetchSites': {
-                const result = await aemConnector.fetchSites();
-                return { content: [{ type: 'text', text: JSON.stringify(result, null, 2) }] };
+                result = await aemConnector.fetchSites();
+                break;
             }
             case 'fetchLanguageMasters': {
                 const site = args.site;
-                const result = await aemConnector.fetchLanguageMasters(site);
-                return { content: [{ type: 'text', text: JSON.stringify(result, null, 2) }] };
+                result = await aemConnector.fetchLanguageMasters(site);
+                break;
             }
             case 'fetchAvailableLocales': {
                 const { site, languageMasterPath } = args;
-                const result = await aemConnector.fetchAvailableLocales(site, languageMasterPath);
-                return { content: [{ type: 'text', text: JSON.stringify(result, null, 2) }] };
+                result = await aemConnector.fetchAvailableLocales(site, languageMasterPath);
+                break;
             }
             case 'replicateAndPublish': {
-                const result = await aemConnector.replicateAndPublish(args.selectedLocales, args.componentData, args.localizedOverrides);
-                return { content: [{ type: 'text', text: JSON.stringify(result, null, 2) }] };
+                result = await aemConnector.replicateAndPublish(args.selectedLocales, args.componentData, args.localizedOverrides);
+                break;
             }
             case 'getAllTextContent': {
                 const pagePath = args.pagePath;
-                const result = await aemConnector.getAllTextContent(pagePath);
-                return { content: [{ type: 'text', text: JSON.stringify(result, null, 2) }] };
+                result = await aemConnector.getAllTextContent(pagePath);
+                break;
             }
             case 'getPageTextContent': {
                 const pagePath = args.pagePath;
-                const result = await aemConnector.getPageTextContent(pagePath);
-                return { content: [{ type: 'text', text: JSON.stringify(result, null, 2) }] };
+                result = await aemConnector.getPageTextContent(pagePath);
+                break;
             }
             case 'getPageImages': {
                 const pagePath = args.pagePath;
-                const result = await aemConnector.getPageImages(pagePath);
-                return { content: [{ type: 'text', text: JSON.stringify(result, null, 2) }] };
+                result = await aemConnector.getPageImages(pagePath);
+                break;
             }
             case 'updateImagePath': {
                 const { componentPath, newImagePath } = args;
-                const result = await aemConnector.updateImagePath(componentPath, newImagePath);
-                return { content: [{ type: 'text', text: JSON.stringify(result, null, 2) }] };
+                result = await aemConnector.updateImagePath(componentPath, newImagePath);
+                break;
             }
             case 'getPageContent': {
                 const pagePath = args.pagePath;
-                const result = await aemConnector.getPageContent(pagePath);
-                return { content: [{ type: 'text', text: JSON.stringify(result, null, 2) }] };
+                result = await aemConnector.getPageContent(pagePath);
+                break;
             }
             case 'listPages': {
                 const { siteRoot, depth, limit } = args;
-                const result = await aemConnector.listPages(siteRoot, depth, limit);
-                return { content: [{ type: 'text', text: JSON.stringify(result, null, 2) }] };
+                result = await aemConnector.listPages(siteRoot, depth, limit);
+                break;
             }
             case 'getNodeContent': {
                 const { path, depth } = args;
-                const result = await aemConnector.getNodeContent(path, depth);
-                return { content: [{ type: 'text', text: JSON.stringify(result, null, 2) }] };
+                result = await aemConnector.getNodeContent(path, depth);
+                break;
             }
             case 'listChildren': {
                 const path = args.path;
                 const children = await aemConnector.listChildren(path);
-                return { content: [{ type: 'text', text: JSON.stringify({ children }, null, 2) }] };
+                result = { children };
+                break;
             }
             case 'getPageProperties': {
                 const pagePath = args.pagePath;
-                const result = await aemConnector.getPageProperties(pagePath);
-                return { content: [{ type: 'text', text: JSON.stringify(result, null, 2) }] };
+                result = await aemConnector.getPageProperties(pagePath);
+                break;
             }
             case 'searchContent': {
-                const result = await aemConnector.searchContent(args);
-                return { content: [{ type: 'text', text: JSON.stringify(result, null, 2) }] };
+                result = await aemConnector.searchContent(args);
+                break;
             }
             case 'executeJCRQuery': {
                 const { query, limit } = args;
-                const result = await aemConnector.executeJCRQuery(query, limit);
-                return { content: [{ type: 'text', text: JSON.stringify(result, null, 2) }] };
+                result = await aemConnector.executeJCRQuery(query, limit);
+                break;
             }
             case 'getAssetMetadata': {
                 const assetPath = args.assetPath;
-                const result = await aemConnector.getAssetMetadata(assetPath);
-                return { content: [{ type: 'text', text: JSON.stringify(result, null, 2) }] };
+                result = await aemConnector.getAssetMetadata(assetPath);
+                break;
             }
             case 'getStatus': {
-                const result = { success: true, workflowId: args.workflowId, status: 'completed', message: 'Mock workflow status - always returns completed', timestamp: new Date().toISOString() };
-                return { content: [{ type: 'text', text: JSON.stringify(result, null, 2) }] };
+                result = { success: true, workflowId: args.workflowId, status: 'completed', message: 'Mock workflow status - always returns completed', timestamp: new Date().toISOString() };
+                break;
             }
             case 'listMethods': {
-                const result = tools;
-                return { content: [{ type: 'text', text: JSON.stringify(result, null, 2) }] };
+                result = tools;
+                break;
             }
             case 'enhancedPageSearch': {
-                const result = await aemConnector.searchContent({ fulltext: args.searchTerm, path: args.basePath, type: 'cq:Page', limit: 20 });
-                return { content: [{ type: 'text', text: JSON.stringify(result, null, 2) }] };
+                result = await aemConnector.searchContent({ fulltext: args.searchTerm, path: args.basePath, type: 'cq:Page', limit: 20 });
+                break;
             }
             case 'createPage': {
-                const result = await aemConnector.createPage(args);
-                return { content: [{ type: 'text', text: JSON.stringify(result, null, 2) }] };
+                result = await aemConnector.createPage(args);
+                break;
             }
             case 'deletePage': {
-                const result = await aemConnector.deletePage(args);
-                return { content: [{ type: 'text', text: JSON.stringify(result, null, 2) }] };
+                result = await aemConnector.deletePage(args);
+                break;
             }
             case 'createComponent': {
-                const result = await aemConnector.createComponent(args);
-                return { content: [{ type: 'text', text: JSON.stringify(result, null, 2) }] };
+                result = await aemConnector.createComponent(args);
+                break;
             }
             case 'deleteComponent': {
-                const result = await aemConnector.deleteComponent(args);
-                return { content: [{ type: 'text', text: JSON.stringify(result, null, 2) }] };
+                result = await aemConnector.deleteComponent(args);
+                break;
             }
             case 'unpublishContent': {
-                const result = await aemConnector.unpublishContent(args);
-                return { content: [{ type: 'text', text: JSON.stringify(result, null, 2) }] };
+                result = await aemConnector.unpublishContent(args);
+                break;
             }
             case 'activatePage': {
-                const result = await aemConnector.activatePage(args);
-                return { content: [{ type: 'text', text: JSON.stringify(result, null, 2) }] };
+                result = await aemConnector.activatePage(args);
+                break;
             }
             case 'deactivatePage': {
-                const result = await aemConnector.deactivatePage(args);
-                return { content: [{ type: 'text', text: JSON.stringify(result, null, 2) }] };
+                result = await aemConnector.deactivatePage(args);
+                break;
             }
             case 'uploadAsset': {
-                const result = await aemConnector.uploadAsset(args);
-                return { content: [{ type: 'text', text: JSON.stringify(result, null, 2) }] };
+                result = await aemConnector.uploadAsset(args);
+                break;
             }
             case 'updateAsset': {
-                const result = await aemConnector.updateAsset(args);
-                return { content: [{ type: 'text', text: JSON.stringify(result, null, 2) }] };
+                result = await aemConnector.updateAsset(args);
+                break;
             }
             case 'deleteAsset': {
-                const result = await aemConnector.deleteAsset(args);
-                return { content: [{ type: 'text', text: JSON.stringify(result, null, 2) }] };
+                result = await aemConnector.deleteAsset(args);
+                break;
             }
             case 'getTemplates': {
                 const sitePath = args.sitePath;
-                const result = await aemConnector.getTemplates(sitePath);
-                return { content: [{ type: 'text', text: JSON.stringify(result, null, 2) }] };
+                result = await aemConnector.getTemplates(sitePath);
+                break;
             }
             case 'getTemplateStructure': {
                 const templatePath = args.templatePath;
-                const result = await aemConnector.getTemplateStructure(templatePath);
-                return { content: [{ type: 'text', text: JSON.stringify(result, null, 2) }] };
+                result = await aemConnector.getTemplateStructure(templatePath);
+                break;
             }
             case 'bulkUpdateComponents': {
-                const result = await aemConnector.bulkUpdateComponents(args);
-                return { content: [{ type: 'text', text: JSON.stringify(result, null, 2) }] };
+                result = await aemConnector.bulkUpdateComponents(args);
+                break;
             }
             default:
                 throw new Error(`Unknown tool: ${name}`);
         }
+        const duration = Date.now() - startTime;
+        logger.methodEnd(name, duration, true, requestId, result);
+        return { content: [{ type: 'text', text: JSON.stringify(result, null, 2) }] };
     }
     catch (error) {
+        const duration = Date.now() - startTime;
+        logger.methodError(name, error, duration, requestId, args);
         return {
             content: [{ type: 'text', text: `Error: ${error.message}` }],
             isError: true,
