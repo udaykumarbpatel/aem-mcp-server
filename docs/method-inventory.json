@@ -1,6 +1,6 @@
 {
   "aemMcpMethods": {
-    "totalMethods": 35,
+    "totalMethods": 40,
     "categories": {
       "pageOperations": {
         "description": "Operations for managing AEM pages",
@@ -182,6 +182,22 @@
             "requiredParams": ["assetPath"],
             "returnType": "object",
             "category": "asset"
+          },
+          {
+            "name": "activateAsset",
+            "description": "Activate (publish) a DAM asset",
+            "parameters": ["assetPath", "activateTree"],
+            "requiredParams": ["assetPath"],
+            "returnType": "object",
+            "category": "asset"
+          },
+          {
+            "name": "deactivateAsset",
+            "description": "Deactivate (unpublish) a DAM asset",
+            "parameters": ["assetPath", "deactivateTree"],
+            "requiredParams": ["assetPath"],
+            "returnType": "object",
+            "category": "asset"
           }
         ]
       },
@@ -285,6 +301,27 @@
           }
         ]
       },
+      "workflowOperations": {
+        "description": "Operations for AEM workflows",
+        "methods": [
+          {
+            "name": "startWorkflow",
+            "description": "Start a workflow using a model and payload",
+            "parameters": ["modelId", "payloadPath", "title"],
+            "requiredParams": ["modelId", "payloadPath"],
+            "returnType": "object",
+            "category": "workflow"
+          },
+          {
+            "name": "getWorkflowStatus",
+            "description": "Get workflow status by ID",
+            "parameters": ["workflowId"],
+            "requiredParams": ["workflowId"],
+            "returnType": "object",
+            "category": "workflow"
+          }
+        ]
+      },
       "legacyOperations": {
         "description": "Legacy operations for JCR node access",
         "methods": [
@@ -319,15 +356,6 @@
             "note": "Not implemented - use AEM version history"
           },
           {
-            "name": "getStatus",
-            "description": "Get workflow status by ID",
-            "parameters": ["workflowId"],
-            "requiredParams": ["workflowId"],
-            "returnType": "object",
-            "category": "utility",
-            "note": "Mock implementation - always returns completed"
-          },
-          {
             "name": "listMethods",
             "description": "Get list of available MCP methods",
             "parameters": [],
@@ -341,18 +369,18 @@
     "methodsByCategory": {
       "page": 10,
       "component": 7,
-      "asset": 4,
+      "asset": 6,
       "search": 3,
       "template": 2,
       "site": 3,
       "replication": 2,
+      "workflow": 2,
       "legacy": 2,
-      "utility": 3
+      "utility": 2
     },
     "implementationNotes": {
       "createPageIssue": "Current implementation creates empty pages without proper jcr:content nodes, making them invisible in AEM Author mode",
       "undoChangesNotImplemented": "Method exists but not implemented - recommends using AEM version history",
-      "getStatusMocked": "Returns mock 'completed' status for all workflow IDs",
       "replicationSimulated": "Replication logic is currently simulated"
     }
   }

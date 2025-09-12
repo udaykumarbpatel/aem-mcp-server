@@ -1,92 +1,94 @@
-import { AEMConnector } from './aem-connector.js';
+import * as components from './aem/components.js';
+import * as pages from './aem/pages.js';
+import * as assets from './aem/assets.js';
+import * as workflows from './aem/workflows.js';
+import { categorizeMethod } from './utils/method-categorizer.js';
 
 export class MCPRequestHandler {
-  aemConnector: AEMConnector;
-
-  constructor(aemConnector: AEMConnector) {
-    this.aemConnector = aemConnector;
-  }
+  constructor() {}
 
   async handleRequest(method: string, params: any) {
     try {
       switch (method) {
         case 'validateComponent':
-          return await this.aemConnector.validateComponent(params);
+          return await components.validateComponent(params);
         case 'updateComponent':
-          return await this.aemConnector.updateComponent(params);
+          return await components.updateComponent(params);
         case 'undoChanges':
-          return await this.aemConnector.undoChanges(params);
+          return await components.undoChanges(params);
         case 'scanPageComponents':
-          return await this.aemConnector.scanPageComponents(params.pagePath);
+          return await components.scanPageComponents(params.pagePath);
         case 'fetchSites':
-          return await this.aemConnector.fetchSites();
+          return await pages.fetchSites();
         case 'fetchLanguageMasters':
-          return await this.aemConnector.fetchLanguageMasters(params.site);
+          return await pages.fetchLanguageMasters(params.site);
         case 'fetchAvailableLocales':
-          return await this.aemConnector.fetchAvailableLocales(params.site, params.languageMasterPath);
+          return await pages.fetchAvailableLocales(params.site, params.languageMasterPath);
         case 'replicateAndPublish':
-          return await this.aemConnector.replicateAndPublish(params.selectedLocales, params.componentData, params.localizedOverrides);
+          return await pages.replicateAndPublish(params.selectedLocales, params.componentData, params.localizedOverrides);
         case 'getAllTextContent':
-          return await this.aemConnector.getAllTextContent(params.pagePath);
+          return await pages.getAllTextContent(params.pagePath);
         case 'getPageTextContent':
-          return await this.aemConnector.getPageTextContent(params.pagePath);
+          return await pages.getPageTextContent(params.pagePath);
         case 'getPageImages':
-          return await this.aemConnector.getPageImages(params.pagePath);
+          return await pages.getPageImages(params.pagePath);
         case 'updateImagePath':
-          return await this.aemConnector.updateImagePath(params.componentPath, params.newImagePath);
+          return await components.updateImagePath(params.componentPath, params.newImagePath);
         case 'getPageContent':
-          return await this.aemConnector.getPageContent(params.pagePath);
+          return await pages.getPageContent(params.pagePath);
         case 'listPages':
-          return await this.aemConnector.listPages(params.siteRoot || params.path || '/content', params.depth || 1, params.limit || 20);
+          return await pages.listPages(params.siteRoot || params.path || '/content', params.depth || 1, params.limit || 20);
         case 'getNodeContent':
-          return await this.aemConnector.getNodeContent(params.path, params.depth || 1);
+          return await pages.getNodeContent(params.path, params.depth || 1);
         case 'listChildren':
-          return await this.aemConnector.listChildren(params.path);
+          return await pages.listChildren(params.path);
         case 'getPageProperties':
-          return await this.aemConnector.getPageProperties(params.pagePath);
+          return await pages.getPageProperties(params.pagePath);
         case 'searchContent':
-          return await this.aemConnector.searchContent(params);
+          return await pages.searchContent(params);
         case 'executeJCRQuery':
-          return await this.aemConnector.executeJCRQuery(params.query, params.limit);
+          return await pages.executeJCRQuery(params.query, params.limit);
         case 'getAssetMetadata':
-          return await this.aemConnector.getAssetMetadata(params.assetPath);
-        case 'getStatus':
-          return this.getWorkflowStatus(params.workflowId);
+          return await assets.getAssetMetadata(params.assetPath);
+        case 'startWorkflow':
+          return await workflows.startWorkflow(params);
+        case 'getWorkflowStatus':
+          return await workflows.getWorkflowStatus(params.workflowId);
         case 'listMethods':
           return { methods: this.getAvailableMethods() };
         case 'enhancedPageSearch':
-          return await this.aemConnector.searchContent({
+          return await pages.searchContent({
             fulltext: params.searchTerm,
             path: params.basePath,
             type: 'cq:Page',
             limit: 20
           });
         case 'createPage':
-          return await this.aemConnector.createPage(params);
+          return await pages.createPage(params);
         case 'deletePage':
-          return await this.aemConnector.deletePage(params);
+          return await pages.deletePage(params);
         case 'createComponent':
-          return await this.aemConnector.createComponent(params);
+          return await components.createComponent(params);
         case 'deleteComponent':
-          return await this.aemConnector.deleteComponent(params);
+          return await components.deleteComponent(params);
         case 'unpublishContent':
-          return await this.aemConnector.unpublishContent(params);
+          return await pages.unpublishContent(params);
         case 'activatePage':
-          return await this.aemConnector.activatePage(params);
+          return await pages.activatePage(params);
         case 'deactivatePage':
-          return await this.aemConnector.deactivatePage(params);
+          return await pages.deactivatePage(params);
         case 'uploadAsset':
-          return await this.aemConnector.uploadAsset(params);
+          return await assets.uploadAsset(params);
         case 'updateAsset':
-          return await this.aemConnector.updateAsset(params);
+          return await assets.updateAsset(params);
         case 'deleteAsset':
-          return await this.aemConnector.deleteAsset(params);
+          return await assets.deleteAsset(params);
         case 'getTemplates':
-          return await this.aemConnector.getTemplates(params.sitePath);
+          return await pages.getTemplates(params.sitePath);
         case 'getTemplateStructure':
-          return await this.aemConnector.getTemplateStructure(params.templatePath);
+          return await pages.getTemplateStructure(params.templatePath);
         case 'bulkUpdateComponents':
-          return await this.aemConnector.bulkUpdateComponents(params);
+          return await components.bulkUpdateComponents(params);
         default:
           throw new Error(`Unknown method: ${method}`);
       }
@@ -95,18 +97,8 @@ export class MCPRequestHandler {
     }
   }
 
-  getWorkflowStatus(workflowId: string) {
-    return {
-      success: true,
-      workflowId: workflowId,
-      status: 'completed',
-      message: 'Mock workflow status - always returns completed',
-      timestamp: new Date().toISOString()
-    };
-  }
-
   getAvailableMethods() {
-    return [
+    const methods = [
       { name: 'validateComponent', description: 'Validate component changes before applying them', parameters: ['locale', 'page_path', 'component', 'props'] },
       { name: 'updateComponent', description: 'Update component properties in AEM', parameters: ['componentPath', 'properties'] },
       { name: 'undoChanges', description: 'Undo the last component changes', parameters: ['job_id'] },
@@ -127,7 +119,8 @@ export class MCPRequestHandler {
       { name: 'searchContent', description: 'Search content using Query Builder', parameters: ['type', 'fulltext', 'path', 'limit'] },
       { name: 'executeJCRQuery', description: 'Execute JCR query', parameters: ['query', 'limit'] },
       { name: 'getAssetMetadata', description: 'Get asset metadata', parameters: ['assetPath'] },
-      { name: 'getStatus', description: 'Get workflow status by ID', parameters: ['workflowId'] },
+      { name: 'startWorkflow', description: 'Start an AEM workflow', parameters: ['modelId', 'payloadPath', 'title'] },
+      { name: 'getWorkflowStatus', description: 'Get workflow status by ID', parameters: ['workflowId'] },
       { name: 'listMethods', description: 'Get list of available MCP methods', parameters: [] },
       { name: 'enhancedPageSearch', description: 'Intelligent page search with comprehensive fallback strategies and cross-section search', parameters: ['searchTerm', 'basePath', 'includeAlternateLocales'] },
       { name: 'createPage', description: 'Create a new page in AEM', parameters: ['parentPath', 'title', 'template', 'name', 'properties'] },
@@ -144,5 +137,7 @@ export class MCPRequestHandler {
       { name: 'getTemplateStructure', description: 'Get detailed structure of a specific template', parameters: ['templatePath'] },
       { name: 'bulkUpdateComponents', description: 'Update multiple components in a single operation with validation and rollback support', parameters: ['updates', 'validateFirst', 'continueOnError'] },
     ];
+
+    return methods.map(m => ({ ...m, category: categorizeMethod(m.name) }));
   }
 } 

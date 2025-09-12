@@ -3,13 +3,14 @@ import cors from 'cors';
 import { join, dirname } from 'path';
 import { fileURLToPath } from 'url';
 import dotenv from 'dotenv';
-import { AEMConnector } from './aem-connector.js';
 import { MCPRequestHandler } from './mcp-handler.js';
+import { aemClient } from './aem/client.js';
 import { logger, loggingMiddleware, generateRequestId } from './logger.js';
 import swaggerUi from 'swagger-ui-express';
 import swaggerJSDoc from 'swagger-jsdoc';
 // import llmRouter from './llm-integration.js';
 // import telegramIntegration from './telegram-integration.js';
+import { categorizeMethods } from './utils/method-categorizer.js';
 
 dotenv.config();
 
@@ -46,8 +47,7 @@ if (process.env.MCP_USERNAME && process.env.MCP_PASSWORD) {
   app.use('/mcp', basicAuth);
 }
 
-const aemConnector = new AEMConnector();
-const mcpHandler = new MCPRequestHandler(aemConnector);
+const mcpHandler = new MCPRequestHandler();
 
 // Method validation middleware
 const validateMethod = (req: Request, res: Response, next: NextFunction) => {
@@ -121,7 +121,7 @@ const handleError = (error: any, req: Request, res: Response, next: NextFunction
 // Enhanced health check endpoint
 app.get('/health', async (req, res) => {
   try {
-    const aemConnected = await aemConnector.testConnection();
+    const aemConnected = await aemClient.testConnection();
     const healthData = {
       status: aemConnected ? 'healthy' : 'degraded',
       aem: {
@@ -158,10 +158,21 @@ app.get('/health', async (req, res) => {
 
 // Detailed health check endpoint
 app.get('/health/detailed', async (req, res) => {
+  if (process.env.NODE_ENV === 'production') {
+    res.status(404).json({
+      status: 'unavailable',
+      message: 'Detailed health check is disabled in production'
+    });
+    return;
+  }
+
   try {
-    const aemConnected = await aemConnector.testConnection();
+    const aemConnected = await aemClient.testConnection();
     const methods = mcpHandler.getAvailableMethods();
-    
+    const methodsByCategory = Object.fromEntries(
+      Object.entries(categorizeMethods(methods)).map(([category, list]) => [category, list.length])
+    );
+
     const detailedHealth = {
       status: aemConnected ? 'healthy' : 'degraded',
       timestamp: new Date().toISOString(),
@@ -169,20 +180,13 @@ app.get('/health/detailed', async (req, res) => {
         connected: aemConnected,
         host: process.env.AEM_HOST || 'http://localhost:4502',
         credentials: {
-          username: process.env.AEM_SERVICE_USER || 'admin',
           configured: !!(process.env.AEM_SERVICE_USER && process.env.AEM_SERVICE_PASSWORD)
         }
       },
       mcp: {
         status: 'ready',
         methodCount: methods.length,
-        methodsByCategory: methods.reduce((acc: any, method) => {
-          const category = method.name.includes('Page') ? 'page' : 
-                          method.name.includes('Component') ? 'component' :
-                          method.name.includes('Asset') ? 'asset' : 'other';
-          acc[category] = (acc[category] || 0) + 1;
-          return acc;
-        }, {}),
+        methodsByCategory,
         version: '1.0.0'
       },
       server: {
@@ -199,7 +203,7 @@ app.get('/health/detailed', async (req, res) => {
         corsEnabled: true
       }
     };
-    
+
     res.status(aemConnected ? 200 : 503).json(detailedHealth);
   } catch (error: any) {
     res.status(500).json({
@@ -270,20 +274,7 @@ app.get('/mcp/methods', async (req, res) => {
 app.get('/api/methods', async (req, res) => {
   try {
     const methods = mcpHandler.getAvailableMethods();
-    const categorizedMethods = methods.reduce((acc: any, method) => {
-      const category = method.name.includes('Page') ? 'page' : 
-                      method.name.includes('Component') ? 'component' :
-                      method.name.includes('Asset') ? 'asset' :
-                      method.name.includes('Template') ? 'template' :
-                      method.name.includes('search') || method.name.includes('Search') ? 'search' :
-                      method.name.includes('Site') || method.name.includes('Language') || method.name.includes('Locale') ? 'site' :
-                      method.name.includes('publish') || method.name.includes('activate') || method.name.includes('replicate') ? 'replication' :
-                      method.name.includes('Node') || method.name.includes('Children') ? 'legacy' : 'utility';
-      
-      if (!acc[category]) acc[category] = [];
-      acc[category].push(method);
-      return acc;
-    }, {});
+    const categorizedMethods = categorizeMethods(methods);
     
     res.json({
       success: true,

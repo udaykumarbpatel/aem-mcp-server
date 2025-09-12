@@ -11,7 +11,7 @@ Reach out to me on [LinkedIn](https://www.linkedin.com/in/indrasish/) or [Email 
 [![TypeScript](https://img.shields.io/badge/typescript-5.8%2B-blue.svg)](https://www.typescriptlang.org/)
 [![MCP Protocol](https://img.shields.io/badge/MCP-1.15.0-green.svg)](https://modelcontextprotocol.io/)
 
-AEM MCP Server is a comprehensive, production-ready Model Context Protocol (MCP) server for Adobe Experience Manager (AEM). It provides 35+ robust REST/JSON-RPC API methods for complete content, component, asset, and template management, with advanced integrations for AI, chatbots, and automation workflows. This project is designed for AEM developers, content teams, and automation engineers who want to manage AEM programmatically or via natural language interfaces.
+AEM MCP Server is a comprehensive, production-ready Model Context Protocol (MCP) server for Adobe Experience Manager (AEM). It provides 40+ robust REST/JSON-RPC API methods for complete content, component, asset, and template management, with advanced integrations for AI, chatbots, and automation workflows. This project is designed for AEM developers, content teams, and automation engineers who want to manage AEM programmatically or via natural language interfaces.
 
 ---
 
@@ -43,7 +43,7 @@ AEM MCP Server is a comprehensive, production-ready Model Context Protocol (MCP)
 
 ## Features
 
-### 🚀 Core Capabilities (35+ Methods)
+### 🚀 Core Capabilities (40+ Methods)
 
 #### Page Operations (10 methods)
 - **Page Lifecycle**: Create, delete, activate/deactivate pages with proper template integration
@@ -57,10 +57,11 @@ AEM MCP Server is a comprehensive, production-ready Model Context Protocol (MCP)
 - **Component Discovery**: Scan pages to discover all components and their properties
 - **Image Management**: Update image paths with verification
 
-#### Asset Operations (4 methods)
+#### Asset Operations (6 methods)
 - **DAM Management**: Upload, update, delete assets in AEM DAM
 - **Metadata Operations**: Get and update asset metadata
 - **File Processing**: Support for multiple file types with MIME type detection
+- **Publishing**: Activate or deactivate assets for the publish environment
 
 #### Search & Query Operations (3 methods)
 - **Advanced Search**: QueryBuilder integration with fulltext search
@@ -79,9 +80,13 @@ AEM MCP Server is a comprehensive, production-ready Model Context Protocol (MCP)
 - **Content Replication**: Replicate and publish content to selected locales
 - **Unpublishing**: Remove content from publish environments
 
-#### Legacy & Utility Operations (5 methods)
+#### Workflow Operations (2 methods)
+- **Workflow Initiation**: Start workflows using models and payloads
+- **Status Tracking**: Retrieve workflow instance status by ID
+
+#### Legacy & Utility Operations (4 methods)
 - **JCR Node Access**: Direct node content access and child listing
-- **System Utilities**: Method listing, status checking, and workflow management
+- **System Utilities**: Method listing and administrative tools
 
 ### 🔧 Technical Features
 - **REST & JSON-RPC APIs**: Dual API support for maximum compatibility
@@ -219,6 +224,38 @@ curl -u admin:admin \
   }'
 ```
 
+#### 6. Start a workflow
+```bash
+curl -u admin:admin \
+  -X POST http://localhost:3001/mcp \
+  -H 'Content-Type: application/json' \
+  -d '{
+    "jsonrpc": "2.0",
+    "id": 6,
+    "method": "startWorkflow",
+    "params": {
+      "modelId": "/var/workflow/models/publish-page",
+      "payloadPath": "/content/mysite/en",
+      "title": "Publish Page"
+    }
+  }'
+```
+
+#### 7. Check workflow status
+```bash
+curl -u admin:admin \
+  -X POST http://localhost:3001/mcp \
+  -H 'Content-Type: application/json' \
+  -d '{
+    "jsonrpc": "2.0",
+    "id": 7,
+    "method": "getWorkflowStatus",
+    "params": {
+      "workflowId": "test-workflow-123"
+    }
+  }'
+```
+
 ### REST API Examples
 
 #### 1. Get all available methods
@@ -241,6 +278,26 @@ curl -u admin:admin \
     "depth": 1,
     "limit": 10
   }'
+```
+
+#### 4. Start a workflow
+```bash
+curl -u admin:admin \
+  -X POST http://localhost:3001/api/methods/startWorkflow \
+  -H 'Content-Type: application/json' \
+  -d '{
+    "modelId": "/var/workflow/models/publish-page",
+    "payloadPath": "/content/mysite/en",
+    "title": "Publish Page"
+  }'
+```
+
+#### 5. Get workflow status
+```bash
+curl -u admin:admin \
+  -X POST http://localhost:3001/api/methods/getWorkflowStatus \
+  -H 'Content-Type: application/json' \
+  -d '{ "workflowId": "test-workflow-123" }'
 ```
 
 ### Method Categories and Examples
@@ -269,6 +326,8 @@ curl -u admin:admin \
 - `updateAsset` - Update asset metadata and content
 - `deleteAsset` - Remove assets from DAM
 - `getAssetMetadata` - Retrieve asset metadata
+- `activateAsset` - Publish assets to the publish environment
+- `deactivateAsset` - Unpublish assets from the publish environment
 
 #### Search Operations
 - `searchContent` - Query Builder search with flexible parameters
@@ -283,6 +342,10 @@ curl -u admin:admin \
 - `fetchSites` - Get all available sites
 - `fetchLanguageMasters` - Get language masters for sites
 - `fetchAvailableLocales` - Get available locales
+
+#### Workflow Operations
+- `startWorkflow` - Start workflows using a model and payload path
+- `getWorkflowStatus` - Retrieve workflow instance status by ID
 
 ### Interactive Dashboard
 Access the web dashboard at `http://localhost:3001/dashboard` for:

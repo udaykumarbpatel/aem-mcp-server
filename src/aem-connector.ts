@@ -1,4 +1,6 @@
 import axios, { AxiosInstance } from 'axios';
+import http from 'http';
+import https from 'https';
 import dotenv from 'dotenv';
 import { getAEMConfig, isValidContentPath, isValidComponentType, isValidLocale, AEMConfig } from './aem-config.js';
 import {
@@ -34,6 +36,7 @@ export class AEMConnector {
   config: AEMConnectorConfig;
   auth: { username: string; password: string };
   aemConfig: AEMConfig;
+  client: AxiosInstance;
 
   constructor() {
     this.config = this.loadConfig();
@@ -46,6 +49,28 @@ export class AEMConnector {
       this.config.aem.host = process.env.AEM_HOST;
       this.config.aem.author = process.env.AEM_HOST;
     }
+
+    const maxSockets = process.env.AEM_MAX_SOCKETS
+      ? parseInt(process.env.AEM_MAX_SOCKETS, 10)
+      : undefined;
+    const agentOptions: http.AgentOptions = { keepAlive: true };
+    if (maxSockets && !isNaN(maxSockets)) {
+      agentOptions.maxSockets = maxSockets;
+    }
+    const httpAgent = new http.Agent(agentOptions);
+    const httpsAgent = new https.Agent(agentOptions);
+
+    this.client = axios.create({
+      baseURL: this.config.aem.host,
+      auth: this.auth,
+      timeout: 30000,
+      headers: {
+        'Content-Type': 'application/json',
+        'Accept': 'application/json',
+      },
+      httpAgent,
+      httpsAgent,
+    });
   }
 
   loadConfig(): AEMConnectorConfig {
@@ -74,15 +99,7 @@ export class AEMConnector {
   }
 
   createAxiosInstance(): AxiosInstance {
-    return axios.create({
-      baseURL: this.config.aem.host,
-      auth: this.auth,
-      timeout: 30000,
-      headers: {
-        'Content-Type': 'application/json',
-        'Accept': 'application/json',
-      },
-    });
+    return this.client;
   }
 
   async testConnection(): Promise<boolean> {
@@ -676,9 +693,34 @@ export class AEMConnector {
   async searchContent(params: any): Promise<object> {
     return safeExecute<object>(async () => {
       const client = this.createAxiosInstance();
-      const response = await client.get(this.config.aem.endpoints.query, { params });
+      const queryParams: any = { ...params };
+
+      const maxLimit = this.aemConfig.queries.maxLimit;
+      const defaultLimit = this.aemConfig.queries.defaultLimit;
+
+      let limit = queryParams.limit ?? queryParams['p.limit'];
+      if (limit === undefined || limit === null) {
+        limit = defaultLimit;
+      }
+      let limitNum = parseInt(limit as string, 10);
+      if (isNaN(limitNum) || limitNum <= 0) {
+        limitNum = defaultLimit;
+      }
+      limitNum = Math.min(limitNum, maxLimit);
+      if ('p.limit' in queryParams || !('limit' in queryParams)) {
+        queryParams['p.limit'] = limitNum.toString();
+        delete queryParams.limit;
+      } else {
+        queryParams.limit = limitNum;
+      }
+
+      if (queryParams.path && !isValidContentPath(queryParams.path, this.aemConfig)) {
+        queryParams.path = this.aemConfig.contentPaths.sitesRoot;
+      }
+
+      const response = await client.get(this.config.aem.endpoints.query, { params: queryParams });
       return createSuccessResponse({
-        params,
+        params: queryParams,
         results: response.data.hits || [],
         total: response.data.total || 0,
         rawResponse: response.data,
@@ -983,6 +1025,96 @@ export class AEMConnector {
         }
       }
     }, 'deactivatePage');
+  }
+
+  async activateAsset(request: any): Promise<object> {
+    return safeExecute<object>(async () => {
+      const { assetPath, activateTree = false } = request;
+      if (!isValidContentPath(assetPath, this.aemConfig)) {
+        throw createAEMError(
+          AEM_ERROR_CODES.INVALID_PARAMETERS,
+          `Invalid asset path: ${String(assetPath)}`,
+          { assetPath }
+        );
+      }
+
+      const client = this.createAxiosInstance();
+
+      try {
+        const formData = new URLSearchParams();
+        formData.append('cmd', 'Activate');
+        formData.append('path', assetPath);
+        formData.append('ignoredeactivated', 'false');
+        formData.append('onlymodified', 'false');
+        if (activateTree) {
+          formData.append('deep', 'true');
+        }
+
+        const response = await client.post('/bin/replicate.json', formData, {
+          headers: {
+            'Content-Type': 'application/x-www-form-urlencoded',
+          },
+        });
+
+        return createSuccessResponse(
+          {
+            success: true,
+            activatedPath: assetPath,
+            activateTree,
+            response: response.data,
+            timestamp: new Date().toISOString(),
+          },
+          'activateAsset'
+        );
+      } catch (error: any) {
+        throw handleAEMHttpError(error, 'activateAsset');
+      }
+    }, 'activateAsset');
+  }
+
+  async deactivateAsset(request: any): Promise<object> {
+    return safeExecute<object>(async () => {
+      const { assetPath, deactivateTree = false } = request;
+      if (!isValidContentPath(assetPath, this.aemConfig)) {
+        throw createAEMError(
+          AEM_ERROR_CODES.INVALID_PARAMETERS,
+          `Invalid asset path: ${String(assetPath)}`,
+          { assetPath }
+        );
+      }
+
+      const client = this.createAxiosInstance();
+
+      try {
+        const formData = new URLSearchParams();
+        formData.append('cmd', 'Deactivate');
+        formData.append('path', assetPath);
+        formData.append('ignoredeactivated', 'false');
+        formData.append('onlymodified', 'false');
+        if (deactivateTree) {
+          formData.append('deep', 'true');
+        }
+
+        const response = await client.post('/bin/replicate.json', formData, {
+          headers: {
+            'Content-Type': 'application/x-www-form-urlencoded',
+          },
+        });
+
+        return createSuccessResponse(
+          {
+            success: true,
+            deactivatedPath: assetPath,
+            deactivateTree,
+            response: response.data,
+            timestamp: new Date().toISOString(),
+          },
+          'deactivateAsset'
+        );
+      } catch (error: any) {
+        throw handleAEMHttpError(error, 'deactivateAsset');
+      }
+    }, 'deactivateAsset');
   }
 
   async uploadAsset(request: any): Promise<object> {
@@ -1478,218 +1610,69 @@ export class AEMConnector {
     }, 'getAvailableTemplates');
   }
 
-  async createPageWithTemplate(request: any): Promise<object> {
-    return safeExecute<object>(async () => {
-      const { parentPath, title, template, name, properties = {} } = request;
+    /**
+     * Create a page by calling an AEM servlet that wraps PageManager.create(...).
+     * Requires an AEM endpoint like /bin/aem/create-page (POST form fields).
+     */
+    async createPageWithTemplate(request: {
+        parentPath: string;
+        title: string;
+        template: string;
+        name?: string;
+        endpoint?: string; // optional override; defaults to /bin/aem/create-page
+    }): Promise<{ success: boolean; pagePath: string; httpStatus: number; aemResponse?: any }> {
+        return safeExecute(async () => {
+            const { parentPath, title, template, name, endpoint } = request;
 
-      if (!isValidContentPath(parentPath, this.aemConfig)) {
-        throw createAEMError(AEM_ERROR_CODES.INVALID_PARAMETERS, `Invalid parent path: ${String(parentPath)}`, { parentPath });
-      }
-
-      // If no template provided, get available templates and prompt user
-      let selectedTemplate = template;
-      if (!selectedTemplate) {
-        const templatesResponse = await this.getAvailableTemplates(parentPath);
-        const availableTemplates = (templatesResponse as any).data.availableTemplates;
-
-        if (availableTemplates.length === 0) {
-          throw createAEMError(AEM_ERROR_CODES.INVALID_PARAMETERS, 'No templates available for this path', { parentPath });
-        }
-
-        // For now, select the first available template
-        // In a real implementation, this would prompt the user
-        selectedTemplate = availableTemplates[0].path;
-        console.log(`🎯 Auto-selected template: ${selectedTemplate} (${availableTemplates[0].title})`);
-      }
-
-      // Validate template exists and get its structure
-      const client = this.createAxiosInstance();
-      const templateStructureResponse = await this.getTemplateStructure(selectedTemplate);
-      const templateData = (templateStructureResponse as any).data;
-      const initialContent = templateData.structure.initialContent || {};
-      const pageResourceType = templateData.structure.properties?.['sling:resourceType'] ||
-                               templateData.fullData?.['jcr:content']?.['sling:resourceType'] ||
-                               'foundation/components/page';
-
-      const pageName = name || title.replace(/[^a-zA-Z0-9-_]/g, '-').toLowerCase();
-      const newPagePath = `${parentPath}/${pageName}`;
-
-      // Create the page using AEM PageManager API equivalent
-      const pageData = {
-        'jcr:primaryType': 'cq:Page',
-        'jcr:content': {
-          'jcr:primaryType': 'cq:PageContent',
-          'jcr:title': title,
-          'cq:template': selectedTemplate,
-          'sling:resourceType': pageResourceType,
-          'cq:lastModified': new Date().toISOString(),
-          'cq:lastModifiedBy': 'admin',
-          ...properties,
-          ...initialContent
-        }
-      };
-
-      // Create the page using Sling POST servlet
-      const formData = new URLSearchParams();
-      formData.append('jcr:primaryType', 'cq:Page');
-
-      // Create page first
-      await client.post(newPagePath, formData, {
-        headers: {
-          'Content-Type': 'application/x-www-form-urlencoded'
-        }
-      });
-
-      // Then create jcr:content with initial content merged
-      const contentFormData = new URLSearchParams();
-      Object.entries(pageData['jcr:content']).forEach(([key, value]) => {
-        // Skip protected JCR properties that are auto-generated
-        if (key === 'jcr:created' || key === 'jcr:createdBy') {
-          return;
-        }
-
-        if (typeof value === 'object' && value !== null) {
-          contentFormData.append(key, JSON.stringify(value));
-        } else {
-          contentFormData.append(key, String(value));
-        }
-      });
-
-      await client.post(`${newPagePath}/jcr:content`, contentFormData, {
-        headers: {
-          'Content-Type': 'application/x-www-form-urlencoded'
-        }
-      });
-
-      // After creating the page, copy any nested initial content structures if present
-      if (initialContent && typeof initialContent === 'object') {
-        await this.copyInitialContentStructure(client, newPagePath, selectedTemplate, initialContent);
-      }
-
-      // Verify page creation
-      const verificationResponse = await client.get(`${newPagePath}.json`);
-      const hasJcrContent = verificationResponse.data['jcr:content'] !== undefined;
-
-      // Check if page is accessible in author mode
-      let pageAccessible = false;
-      try {
-        const authorResponse = await client.get(`${newPagePath}.html`, {
-          validateStatus: (status) => status < 500
-        });
-        pageAccessible = authorResponse.status === 200;
-      } catch (error) {
-        pageAccessible = false;
-      }
-
-      // Check AEM error logs (simplified check)
-      const errorLogCheck = {
-        hasErrors: false,
-        errors: []
-      };
-
-      return createSuccessResponse({
-        success: true,
-        pagePath: newPagePath,
-        title,
-        templateUsed: selectedTemplate,
-        initialContentCopied: true,
-        jcrContentCreated: hasJcrContent,
-        pageAccessible,
-        errorLogCheck,
-        creationDetails: {
-          timestamp: new Date().toISOString(),
-          steps: [
-            'Template validation completed',
-            'Template structure analyzed',
-            'Initial content identified',
-            'Page node created',
-            'jcr:content node created with initial content',
-            'Nested structures copied',
-            'Page structure verified',
-            'Accessibility check completed'
-          ]
-        },
-        pageStructure: verificationResponse.data
-      }, 'createPageWithTemplate');
-    }, 'createPageWithTemplate');
-  }
-
-  /**
-   * Helper method to copy initial content structure from template to page
-   */
-  private async copyInitialContentStructure(client: any, pagePath: string, templatePath: string, initialContent: any) {
-    // Get full initial content from template
-    try {
-      const initialResponse = await client.get(`${templatePath}/initial/jcr:content.json`, {
-        params: { ':depth': '5' }
-      });
-
-      if (initialResponse.data) {
-        const fullInitialContent = initialResponse.data;
-        // Recursive function to copy nested structures
-        const copyStructure = async (sourceData: any, targetPath: string) => {
-          const entries = Object.entries(sourceData);
-          for (const [key, value] of entries) {
-            // Skip JCR metadata properties that are auto-generated
-            if (key.startsWith('jcr:') && (key !== 'jcr:primaryType')) {
-              continue;
+            if (!isValidContentPath(parentPath, this.aemConfig)) {
+                const err = new Error(`Invalid parent path: ${String(parentPath)}`);
+                (err as any).name = "INVALID_PARAMETERS";
+                throw err;
             }
-            if (key === 'sling:resourceType' || key === 'cq:template') {
-              continue; // Already set at root level
+            if (!title || !template) {
+                const err = new Error("Missing required fields: title, template");
+                (err as any).name = "INVALID_PARAMETERS";
+                throw err;
             }
 
-            const fullTargetPath = `${targetPath}/${key}`;
-            if (typeof value === 'object' && value !== null && !Array.isArray(value)) {
-              // Create nested node
-              const nodeFormData = new URLSearchParams();
-              type JcrNode = Record<string, unknown>;
-              const v = value as JcrNode;
-              const jcrPrimary = typeof v['jcr:primaryType'] === 'string' ? (v['jcr:primaryType'] as string) : 'nt:unstructured';
-              nodeFormData.append('jcr:primaryType', jcrPrimary);
-              Object.entries(value).forEach(([subKey, subValue]) => {
-                if (subKey.startsWith('jcr:') && subKey !== 'jcr:primaryType') {
-                  return;
-                }
-                if (typeof subValue === 'object' && subValue !== null && !Array.isArray(subValue)) {
-                  nodeFormData.append(subKey, JSON.stringify(subValue));
-                } else {
-                  nodeFormData.append(subKey, String(subValue));
-                }
-              });
+            const pageName = (name || String(title))
+                .trim()
+                .replace(/[^a-zA-Z0-9-_]/g, "-")
+                .toLowerCase();
 
-              try {
-                await client.post(fullTargetPath, nodeFormData, {
-                  headers: {
-                    'Content-Type': 'application/x-www-form-urlencoded'
-                  }
-                });
-              } catch (postError: any) {
-                // Node might already exist, try updating instead
-                try {
-                  await client.post(fullTargetPath, nodeFormData, {
-                    headers: {
-                      'Content-Type': 'application/x-www-form-urlencoded'
-                    }
-                  });
-                } catch (updateError) {
-                  // Silently fail for individual node creation issues
-                }
-              }
+            const servlet = endpoint || "/bin/aem/create-page";
+            const client = this.createAxiosInstance();
+
+            const form = new URLSearchParams();
+            form.append("parentPath", parentPath);
+            form.append("pageName", pageName);
+            form.append("title", String(title));
+            form.append("template", template);
+
+            const resp = await client.post(servlet, form, {
+                headers: { "Content-Type": "application/x-www-form-urlencoded" },
+                validateStatus: (s) => s >= 200 && s < 500
+            });
+
+            if (resp.status >= 400) {
+                const err = new Error(
+                    `AEM servlet error ${resp.status}: ${
+                        typeof resp.data === "string" ? resp.data : JSON.stringify(resp.data)
+                    }`
+                );
+                (err as any).name = "AEM_REQUEST_FAILED";
+                (err as any).meta = { servlet, parentPath, pageName, template, status: resp.status };
+                throw err;
             }
-          }
-        };
 
-        // Copy all nested structures from initial content
-        await copyStructure(fullInitialContent, `${pagePath}/jcr:content`);
-      }
-    } catch (error) {
-      // If initial content copying fails, don't break page creation
-      console.warn(
-        'Warning: Could not copy full initial content structure:',
-        error instanceof Error ? error.message : String(error)
-      );    }
-  }
-
+            return {
+                success: true,
+                pagePath: `${parentPath}/${pageName}`,
+                httpStatus: resp.status,
+                aemResponse: resp.data
+            };
+        }, "createPageWithTemplate");
+    }
 
   /**
    * Validate template compatibility with target path
@@ -1801,5 +1784,81 @@ export class AEMConnector {
     this.templateCache.clear();
     this.templateCacheExpiry.clear();
     console.log('🗑️ Template cache cleared');
+  }
+
+  async startWorkflow(request: any): Promise<object> {
+    return safeExecute<object>(async () => {
+      const { modelId, payloadPath, title } = request || {};
+      if (!modelId || typeof modelId !== 'string') {
+        throw createAEMError(
+          AEM_ERROR_CODES.INVALID_PARAMETERS,
+          'Workflow modelId is required and must be a string'
+        );
+      }
+      if (!payloadPath || typeof payloadPath !== 'string') {
+        throw createAEMError(
+          AEM_ERROR_CODES.INVALID_PARAMETERS,
+          'Payload path is required and must be a string'
+        );
+      }
+      if (!isValidContentPath(payloadPath, this.aemConfig)) {
+        throw createAEMError(
+          AEM_ERROR_CODES.INVALID_PATH,
+          `Payload path '${payloadPath}' is not within allowed content roots`,
+          { path: payloadPath, allowedRoots: Object.values(this.aemConfig.contentPaths) }
+        );
+      }
+
+      const client = this.createAxiosInstance();
+      try {
+        const response = await client.post(
+          `/api/workflow/runtime/models/${encodeURIComponent(modelId)}/instances`,
+          {
+            payload: payloadPath,
+            payloadType: 'JCR_PATH',
+            workflowTitle: title,
+          }
+        );
+        const workflowId = response.data?.id || response.data?.workflowId || response.data;
+        return createSuccessResponse(
+          {
+            workflowId,
+            modelId,
+            payloadPath,
+            state: response.data?.state || 'unknown',
+          },
+          'startWorkflow'
+        );
+      } catch (error: any) {
+        throw handleAEMHttpError(error, 'startWorkflow');
+      }
+    }, 'startWorkflow');
+  }
+
+  async getWorkflowStatus(workflowId: string): Promise<object> {
+    return safeExecute<object>(async () => {
+      if (!workflowId || typeof workflowId !== 'string') {
+        throw createAEMError(
+          AEM_ERROR_CODES.INVALID_PARAMETERS,
+          'Workflow ID is required and must be a string'
+        );
+      }
+      const client = this.createAxiosInstance();
+      try {
+        const response = await client.get(
+          `/api/workflow/runtime/instances/${encodeURIComponent(workflowId)}`
+        );
+        return createSuccessResponse(
+          {
+            workflowId,
+            status: response.data?.status || response.data?.state,
+            data: response.data,
+          },
+          'getWorkflowStatus'
+        );
+      } catch (error: any) {
+        throw handleAEMHttpError(error, 'getWorkflowStatus');
+      }
+    }, 'getWorkflowStatus');
   }
 }
