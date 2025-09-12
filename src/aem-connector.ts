@@ -1673,7 +1673,7 @@ export class AEMConnector {
           const entries = Object.entries(sourceData);
           for (const [key, value] of entries) {
             // Skip JCR metadata properties that are auto-generated
-            if (key.startsWith('jcr:') && (key !== 'jcr:primaryType')) {
+            if (key.startsWith('jcr:') && key !== 'jcr:primaryType') {
               continue;
             }
             if (key === 'sling:resourceType' || key === 'cq:template') {
@@ -1688,13 +1688,13 @@ export class AEMConnector {
               const v = value as JcrNode;
               const jcrPrimary = typeof v['jcr:primaryType'] === 'string' ? (v['jcr:primaryType'] as string) : 'nt:unstructured';
               nodeFormData.append('jcr:primaryType', jcrPrimary);
+
+              // Append only primitive properties
               Object.entries(value).forEach(([subKey, subValue]) => {
                 if (subKey.startsWith('jcr:') && subKey !== 'jcr:primaryType') {
                   return;
                 }
-                if (typeof subValue === 'object' && subValue !== null && !Array.isArray(subValue)) {
-                  nodeFormData.append(subKey, JSON.stringify(subValue));
-                } else {
+                if (typeof subValue !== 'object' || subValue === null || Array.isArray(subValue)) {
                   nodeFormData.append(subKey, String(subValue));
                 }
               });
@@ -1717,6 +1717,9 @@ export class AEMConnector {
                   // Silently fail for individual node creation issues
                 }
               }
+
+              // Recursively copy child structures
+              await copyStructure(value, fullTargetPath);
             }
           }
         };
