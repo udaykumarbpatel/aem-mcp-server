@@ -11,7 +11,7 @@ Reach out to me on [LinkedIn](https://www.linkedin.com/in/indrasish/) or [Email 
 [![TypeScript](https://img.shields.io/badge/typescript-5.8%2B-blue.svg)](https://www.typescriptlang.org/)
 [![MCP Protocol](https://img.shields.io/badge/MCP-1.15.0-green.svg)](https://modelcontextprotocol.io/)
 
-AEM MCP Server is a comprehensive, production-ready Model Context Protocol (MCP) server for Adobe Experience Manager (AEM). It provides 35+ robust REST/JSON-RPC API methods for complete content, component, asset, and template management, with advanced integrations for AI, chatbots, and automation workflows. This project is designed for AEM developers, content teams, and automation engineers who want to manage AEM programmatically or via natural language interfaces.
+AEM MCP Server is a comprehensive, production-ready Model Context Protocol (MCP) server for Adobe Experience Manager (AEM). It provides 37+ robust REST/JSON-RPC API methods for complete content, component, asset, and template management, with advanced integrations for AI, chatbots, and automation workflows. This project is designed for AEM developers, content teams, and automation engineers who want to manage AEM programmatically or via natural language interfaces.
 
 ---
 
@@ -43,7 +43,7 @@ AEM MCP Server is a comprehensive, production-ready Model Context Protocol (MCP)
 
 ## Features
 
-### 🚀 Core Capabilities (35+ Methods)
+### 🚀 Core Capabilities (37+ Methods)
 
 #### Page Operations (10 methods)
 - **Page Lifecycle**: Create, delete, activate/deactivate pages with proper template integration
@@ -57,10 +57,11 @@ AEM MCP Server is a comprehensive, production-ready Model Context Protocol (MCP)
 - **Component Discovery**: Scan pages to discover all components and their properties
 - **Image Management**: Update image paths with verification
 
-#### Asset Operations (4 methods)
+#### Asset Operations (6 methods)
 - **DAM Management**: Upload, update, delete assets in AEM DAM
 - **Metadata Operations**: Get and update asset metadata
 - **File Processing**: Support for multiple file types with MIME type detection
+- **Publishing**: Activate or deactivate assets for the publish environment
 
 #### Search & Query Operations (3 methods)
 - **Advanced Search**: QueryBuilder integration with fulltext search
@@ -269,6 +270,8 @@ curl -u admin:admin \
 - `updateAsset` - Update asset metadata and content
 - `deleteAsset` - Remove assets from DAM
 - `getAssetMetadata` - Retrieve asset metadata
+- `activateAsset` - Publish assets to the publish environment
+- `deactivateAsset` - Unpublish assets from the publish environment
 
 #### Search Operations
 - `searchContent` - Query Builder search with flexible parameters

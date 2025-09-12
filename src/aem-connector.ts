@@ -1027,6 +1027,96 @@ export class AEMConnector {
     }, 'deactivatePage');
   }
 
+  async activateAsset(request: any): Promise<object> {
+    return safeExecute<object>(async () => {
+      const { assetPath, activateTree = false } = request;
+      if (!isValidContentPath(assetPath, this.aemConfig)) {
+        throw createAEMError(
+          AEM_ERROR_CODES.INVALID_PARAMETERS,
+          `Invalid asset path: ${String(assetPath)}`,
+          { assetPath }
+        );
+      }
+
+      const client = this.createAxiosInstance();
+
+      try {
+        const formData = new URLSearchParams();
+        formData.append('cmd', 'Activate');
+        formData.append('path', assetPath);
+        formData.append('ignoredeactivated', 'false');
+        formData.append('onlymodified', 'false');
+        if (activateTree) {
+          formData.append('deep', 'true');
+        }
+
+        const response = await client.post('/bin/replicate.json', formData, {
+          headers: {
+            'Content-Type': 'application/x-www-form-urlencoded',
+          },
+        });
+
+        return createSuccessResponse(
+          {
+            success: true,
+            activatedPath: assetPath,
+            activateTree,
+            response: response.data,
+            timestamp: new Date().toISOString(),
+          },
+          'activateAsset'
+        );
+      } catch (error: any) {
+        throw handleAEMHttpError(error, 'activateAsset');
+      }
+    }, 'activateAsset');
+  }
+
+  async deactivateAsset(request: any): Promise<object> {
+    return safeExecute<object>(async () => {
+      const { assetPath, deactivateTree = false } = request;
+      if (!isValidContentPath(assetPath, this.aemConfig)) {
+        throw createAEMError(
+          AEM_ERROR_CODES.INVALID_PARAMETERS,
+          `Invalid asset path: ${String(assetPath)}`,
+          { assetPath }
+        );
+      }
+
+      const client = this.createAxiosInstance();
+
+      try {
+        const formData = new URLSearchParams();
+        formData.append('cmd', 'Deactivate');
+        formData.append('path', assetPath);
+        formData.append('ignoredeactivated', 'false');
+        formData.append('onlymodified', 'false');
+        if (deactivateTree) {
+          formData.append('deep', 'true');
+        }
+
+        const response = await client.post('/bin/replicate.json', formData, {
+          headers: {
+            'Content-Type': 'application/x-www-form-urlencoded',
+          },
+        });
+
+        return createSuccessResponse(
+          {
+            success: true,
+            deactivatedPath: assetPath,
+            deactivateTree,
+            response: response.data,
+            timestamp: new Date().toISOString(),
+          },
+          'deactivateAsset'
+        );
+      } catch (error: any) {
+        throw handleAEMHttpError(error, 'deactivateAsset');
+      }
+    }, 'deactivateAsset');
+  }
+
   async uploadAsset(request: any): Promise<object> {
     return safeExecute<object>(async () => {
       const { parentPath, fileName, fileContent, mimeType, metadata = {} } = request;
