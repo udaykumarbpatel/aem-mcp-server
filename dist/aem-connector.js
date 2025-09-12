@@ -58,19 +58,24 @@ export class AEMConnector {
     }
     async testConnection() {
         try {
+            // eslint-disable-next-line no-console
             console.log('Testing AEM connection to:', this.config.aem.host);
             const client = this.createAxiosInstance();
             const response = await client.get('/libs/granite/core/content/login.html', {
                 timeout: 5000,
                 validateStatus: (status) => status < 500,
             });
+            // eslint-disable-next-line no-console
             console.log('✅ AEM connection successful! Status:', response.status);
             return true;
         }
         catch (error) {
+            // eslint-disable-next-line no-console
             console.error('❌ AEM connection failed:', error.message);
             if (error.response) {
+                // eslint-disable-next-line no-console
                 console.error('   Status:', error.response.status);
+                // eslint-disable-next-line no-console
                 console.error('   URL:', error.config?.url);
             }
             return false;

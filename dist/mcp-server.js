@@ -451,193 +451,158 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
                 return { content: [{ type: 'text', text: JSON.stringify(result, null, 2) }] };
             }
             case 'updateComponent': {
-                console.log("executing updateComponent");
                 const result = await aemConnector.updateComponent(args);
                 return { content: [{ type: 'text', text: JSON.stringify(result, null, 2) }] };
             }
             case 'undoChanges': {
-                console.log("executing undoChanges");
                 const result = await aemConnector.undoChanges(args);
                 return { content: [{ type: 'text', text: JSON.stringify(result, null, 2) }] };
             }
             case 'scanPageComponents': {
-                console.log("executing scanPageComponents");
                 const pagePath = args.pagePath;
                 const result = await aemConnector.scanPageComponents(pagePath);
                 return { content: [{ type: 'text', text: JSON.stringify(result, null, 2) }] };
             }
             case 'fetchSites': {
-                console.log("executing fetchSites");
                 const result = await aemConnector.fetchSites();
                 return { content: [{ type: 'text', text: JSON.stringify(result, null, 2) }] };
             }
             case 'fetchLanguageMasters': {
-                console.log("executing fetchLanguageMasters");
                 const site = args.site;
                 const result = await aemConnector.fetchLanguageMasters(site);
                 return { content: [{ type: 'text', text: JSON.stringify(result, null, 2) }] };
             }
             case 'fetchAvailableLocales': {
-                console.log("executing fetchAvailableLocales");
                 const { site, languageMasterPath } = args;
                 const result = await aemConnector.fetchAvailableLocales(site, languageMasterPath);
                 return { content: [{ type: 'text', text: JSON.stringify(result, null, 2) }] };
             }
             case 'replicateAndPublish': {
-                console.log("executing replicateAndPublish");
                 const result = await aemConnector.replicateAndPublish(args.selectedLocales, args.componentData, args.localizedOverrides);
                 return { content: [{ type: 'text', text: JSON.stringify(result, null, 2) }] };
             }
             case 'getAllTextContent': {
-                console.log("executing getAllTextContent");
                 const pagePath = args.pagePath;
                 const result = await aemConnector.getAllTextContent(pagePath);
                 return { content: [{ type: 'text', text: JSON.stringify(result, null, 2) }] };
             }
             case 'getPageTextContent': {
-                console.log("executing getPageTextContent");
                 const pagePath = args.pagePath;
                 const result = await aemConnector.getPageTextContent(pagePath);
                 return { content: [{ type: 'text', text: JSON.stringify(result, null, 2) }] };
             }
             case 'getPageImages': {
-                console.log("executing getPageImages");
                 const pagePath = args.pagePath;
                 const result = await aemConnector.getPageImages(pagePath);
                 return { content: [{ type: 'text', text: JSON.stringify(result, null, 2) }] };
             }
             case 'updateImagePath': {
-                console.log("executing updateImagePath");
                 const { componentPath, newImagePath } = args;
                 const result = await aemConnector.updateImagePath(componentPath, newImagePath);
                 return { content: [{ type: 'text', text: JSON.stringify(result, null, 2) }] };
             }
             case 'getPageContent': {
-                console.log("executing getPageContent");
                 const pagePath = args.pagePath;
                 const result = await aemConnector.getPageContent(pagePath);
                 return { content: [{ type: 'text', text: JSON.stringify(result, null, 2) }] };
             }
             case 'listPages': {
-                console.log("executing listPages");
                 const { siteRoot, depth, limit } = args;
                 const result = await aemConnector.listPages(siteRoot, depth, limit);
                 return { content: [{ type: 'text', text: JSON.stringify(result, null, 2) }] };
             }
             case 'getNodeContent': {
-                console.log("executing getNodeContent");
                 const { path, depth } = args;
                 const result = await aemConnector.getNodeContent(path, depth);
                 return { content: [{ type: 'text', text: JSON.stringify(result, null, 2) }] };
             }
             case 'listChildren': {
-                console.log("executing listChildren");
                 const path = args.path;
                 const children = await aemConnector.listChildren(path);
                 return { content: [{ type: 'text', text: JSON.stringify({ children }, null, 2) }] };
             }
             case 'getPageProperties': {
-                console.log("executing getPageProperties");
                 const pagePath = args.pagePath;
                 const result = await aemConnector.getPageProperties(pagePath);
                 return { content: [{ type: 'text', text: JSON.stringify(result, null, 2) }] };
             }
             case 'searchContent': {
-                console.log("executing searchContent");
                 const result = await aemConnector.searchContent(args);
                 return { content: [{ type: 'text', text: JSON.stringify(result, null, 2) }] };
             }
             case 'executeJCRQuery': {
-                console.log("executing executeJCRQuery");
                 const { query, limit } = args;
                 const result = await aemConnector.executeJCRQuery(query, limit);
                 return { content: [{ type: 'text', text: JSON.stringify(result, null, 2) }] };
             }
             case 'getAssetMetadata': {
-                console.log("executing getAssetMetadata");
                 const assetPath = args.assetPath;
                 const result = await aemConnector.getAssetMetadata(assetPath);
                 return { content: [{ type: 'text', text: JSON.stringify(result, null, 2) }] };
             }
             case 'getStatus': {
-                console.log("executing getStatus");
                 const result = { success: true, workflowId: args.workflowId, status: 'completed', message: 'Mock workflow status - always returns completed', timestamp: new Date().toISOString() };
                 return { content: [{ type: 'text', text: JSON.stringify(result, null, 2) }] };
             }
             case 'listMethods': {
-                console.log("executing listMethods");
                 const result = tools;
                 return { content: [{ type: 'text', text: JSON.stringify(result, null, 2) }] };
             }
             case 'enhancedPageSearch': {
-                console.log("executing enhancedPageSearch");
                 const result = await aemConnector.searchContent({ fulltext: args.searchTerm, path: args.basePath, type: 'cq:Page', limit: 20 });
                 return { content: [{ type: 'text', text: JSON.stringify(result, null, 2) }] };
             }
             case 'createPage': {
-                console.log("executing createPage");
                 const result = await aemConnector.createPage(args);
                 return { content: [{ type: 'text', text: JSON.stringify(result, null, 2) }] };
             }
             case 'deletePage': {
-                console.log("executing deletePage");
                 const result = await aemConnector.deletePage(args);
                 return { content: [{ type: 'text', text: JSON.stringify(result, null, 2) }] };
             }
             case 'createComponent': {
-                console.log("executing createComponent");
                 const result = await aemConnector.createComponent(args);
                 return { content: [{ type: 'text', text: JSON.stringify(result, null, 2) }] };
             }
             case 'deleteComponent': {
-                console.log("executing deleteComponent");
                 const result = await aemConnector.deleteComponent(args);
                 return { content: [{ type: 'text', text: JSON.stringify(result, null, 2) }] };
             }
             case 'unpublishContent': {
-                console.log("executing unpublishContent");
                 const result = await aemConnector.unpublishContent(args);
                 return { content: [{ type: 'text', text: JSON.stringify(result, null, 2) }] };
             }
             case 'activatePage': {
-                console.log("executing activatePage");
                 const result = await aemConnector.activatePage(args);
                 return { content: [{ type: 'text', text: JSON.stringify(result, null, 2) }] };
             }
             case 'deactivatePage': {
-                console.log("executing deactivatePage");
                 const result = await aemConnector.deactivatePage(args);
                 return { content: [{ type: 'text', text: JSON.stringify(result, null, 2) }] };
             }
             case 'uploadAsset': {
-                console.log("executing uploadAsset");
                 const result = await aemConnector.uploadAsset(args);
                 return { content: [{ type: 'text', text: JSON.stringify(result, null, 2) }] };
             }
             case 'updateAsset': {
-                console.log("executing updateAsset");
                 const result = await aemConnector.updateAsset(args);
                 return { content: [{ type: 'text', text: JSON.stringify(result, null, 2) }] };
             }
             case 'deleteAsset': {
-                console.log("executing deleteAsset");
                 const result = await aemConnector.deleteAsset(args);
                 return { content: [{ type: 'text', text: JSON.stringify(result, null, 2) }] };
             }
             case 'getTemplates': {
-                console.log("executing getTemplates");
                 const sitePath = args.sitePath;
                 const result = await aemConnector.getTemplates(sitePath);
                 return { content: [{ type: 'text', text: JSON.stringify(result, null, 2) }] };
             }
             case 'getTemplateStructure': {
-                console.log("executing getTemplateStructure");
                 const templatePath = args.templatePath;
                 const result = await aemConnector.getTemplateStructure(templatePath);
                 return { content: [{ type: 'text', text: JSON.stringify(result, null, 2) }] };
             }
             case 'bulkUpdateComponents': {
-                console.log("executing bulkUpdateComponents");
                 const result = await aemConnector.bulkUpdateComponents(args);
                 return { content: [{ type: 'text', text: JSON.stringify(result, null, 2) }] };
             }
@@ -655,9 +620,11 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
 async function main() {
     const transport = new StdioServerTransport();
     await server.connect(transport);
+    // eslint-disable-next-line no-console
     console.error('AEM MCP Server running as a standard MCP handler (stdio transport)');
 }
 main().catch((error) => {
+    // eslint-disable-next-line no-console
     console.error('Fatal error:', error);
     process.exit(1);
 });
