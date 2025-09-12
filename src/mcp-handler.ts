@@ -1,6 +1,7 @@
 import * as components from './aem/components.js';
 import * as pages from './aem/pages.js';
 import * as assets from './aem/assets.js';
+import { categorizeMethod } from './utils/method-categorizer.js';
 
 export class MCPRequestHandler {
   constructor() {}
@@ -104,7 +105,7 @@ export class MCPRequestHandler {
   }
 
   getAvailableMethods() {
-    return [
+    const methods = [
       { name: 'validateComponent', description: 'Validate component changes before applying them', parameters: ['locale', 'page_path', 'component', 'props'] },
       { name: 'updateComponent', description: 'Update component properties in AEM', parameters: ['componentPath', 'properties'] },
       { name: 'undoChanges', description: 'Undo the last component changes', parameters: ['job_id'] },
@@ -142,5 +143,7 @@ export class MCPRequestHandler {
       { name: 'getTemplateStructure', description: 'Get detailed structure of a specific template', parameters: ['templatePath'] },
       { name: 'bulkUpdateComponents', description: 'Update multiple components in a single operation with validation and rollback support', parameters: ['updates', 'validateFirst', 'continueOnError'] },
     ];
+
+    return methods.map(m => ({ ...m, category: categorizeMethod(m.name) }));
   }
 } 
