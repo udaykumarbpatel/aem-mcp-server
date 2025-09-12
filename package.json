@@ -1,12 +1,12 @@
 {
   "name": "aem-mcp-agent",
   "version": "1.0.0",
-  "description": "AEM Model Context Protocol (MCP) server with LLM and Telegram integration (TypeScript clone)",
+  "description": "AEM Model Context Protocol (MCP) server with LLM (TypeScript clone)",
   "main": "dist/index.js",
   "scripts": {
     "build": "tsc",
     "start": "node dist/index.js",
-    "dev": "ts-node-dev src/index.ts",
+    "dev": "tsx --watch src/index.ts",
     "mcp": "node dist/mcp-server.js",
     "test": "npm run build && node dist/tests/run-tests.js",
     "test:quick": "npm run build && node dist/tests/run-tests.js -- --quick",
@@ -31,6 +31,7 @@
     "@types/swagger-ui-express": "^4.1.8",
     "ts-node": "^10.9.2",
     "ts-node-dev": "^2.0.0",
+    "tsx": "^4.14.0",
     "typescript": "^5.8.3"
   },
   "type": "module"
