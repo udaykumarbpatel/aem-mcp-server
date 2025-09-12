@@ -214,21 +214,21 @@ app.get('/health/detailed', async (req, res) => {
   }
 });
 
-app.post('/mcp', async (req, res) => {
+app.post('/mcp', validateMethod, async (req: Request, res: Response, next: NextFunction) => {
   const requestId = (req as any).requestId;
   const startTime = Date.now();
-  
+
   try {
     const { jsonrpc, id, method, params } = req.body;
-    
+
     logger.methodStart(method || 'unknown', params, requestId);
-    
+
     if (jsonrpc !== '2.0' || !method) {
       logger.warn('Invalid JSON-RPC request', {
         requestId,
         metadata: { jsonrpc, method, hasParams: !!params }
       });
-      
+
       res.status(400).json({
         jsonrpc: '2.0',
         id: id || null,
@@ -236,24 +236,20 @@ app.post('/mcp', async (req, res) => {
       });
       return;
     }
-    
+
     const result = await mcpHandler.handleRequest(method, params || {});
     const duration = Date.now() - startTime;
-    
+
     logger.methodEnd(method, duration, true, requestId, result);
-    
+
     res.json({ jsonrpc: '2.0', id: id || null, result });
   } catch (error: any) {
     const duration = Date.now() - startTime;
     const method = req.body?.method || 'unknown';
-    
+
     logger.methodError(method, error, duration, requestId, req.body?.params);
-    
-    res.json({
-      jsonrpc: '2.0',
-      id: req.body?.id || null,
-      error: { code: -32000, message: error.message || 'Internal error', data: error.stack },
-    });
+
+    next(error);
   }
 });
 
@@ -527,6 +523,8 @@ openapiSpec.paths = {
 
 app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(openapiSpec));
 app.get('/openapi.json', (req: express.Request, res: express.Response) => { res.json(openapiSpec); });
+
+app.use(handleError);
 
 export async function startGateway() {
   app.listen(GATEWAY_PORT, () => {
