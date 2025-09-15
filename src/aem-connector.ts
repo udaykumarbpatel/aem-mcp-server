@@ -1520,240 +1520,69 @@ export class AEMConnector {
     }, 'getAvailableTemplates');
   }
 
-  async createPageWithTemplate(request: any): Promise<object> {
-    return safeExecute<object>(async () => {
-      const { parentPath, title, template, name, properties = {} } = request;
+    /**
+     * Create a page by calling an AEM servlet that wraps PageManager.create(...).
+     * Requires an AEM endpoint like /bin/aem/create-page (POST form fields).
+     */
+    async createPageWithTemplate(request: {
+        parentPath: string;
+        title: string;
+        template: string;
+        name?: string;
+        endpoint?: string; // optional override; defaults to /bin/aem/create-page
+    }): Promise<{ success: boolean; pagePath: string; httpStatus: number; aemResponse?: any }> {
+        return safeExecute(async () => {
+            const { parentPath, title, template, name, endpoint } = request;
 
-      if (!isValidContentPath(parentPath, this.aemConfig)) {
-        throw createAEMError(AEM_ERROR_CODES.INVALID_PARAMETERS, `Invalid parent path: ${String(parentPath)}`, { parentPath });
-      }
-
-      // If no template provided, get available templates and prompt user
-      let selectedTemplate = template;
-      if (!selectedTemplate) {
-        const templatesResponse = await this.getAvailableTemplates(parentPath);
-        const availableTemplates = (templatesResponse as any).data.availableTemplates;
-
-        if (availableTemplates.length === 0) {
-          throw createAEMError(AEM_ERROR_CODES.INVALID_PARAMETERS, 'No templates available for this path', { parentPath });
-        }
-
-        // For now, select the first available template
-        // In a real implementation, this would prompt the user
-        selectedTemplate = availableTemplates[0].path;
-        console.log(`🎯 Auto-selected template: ${selectedTemplate} (${availableTemplates[0].title})`);
-      }
-
-      // Validate template exists and get its structure
-      const client = this.createAxiosInstance();
-      const templateStructureResponse = await this.getTemplateStructure(selectedTemplate);
-      const templateData = (templateStructureResponse as any).data;
-      const initialContent = templateData.structure.initialContent?.['jcr:content'] || {};
-      const pageResourceType = templateData.structure.properties?.['sling:resourceType'] ||
-                               templateData.fullData?.['jcr:content']?.['sling:resourceType'] ||
-                               'foundation/components/page';
-
-      const pageName = name || title.replace(/[^a-zA-Z0-9-_]/g, '-').toLowerCase();
-      const newPagePath = `${parentPath}/${pageName}`;
-
-      // Create the page using AEM PageManager API equivalent
-      const pageData = {
-        'jcr:primaryType': 'cq:Page',
-        'jcr:content': {
-          'jcr:primaryType': 'cq:PageContent',
-          'jcr:title': title,
-          'cq:template': selectedTemplate,
-          'sling:resourceType': pageResourceType,
-          'cq:lastModified': new Date().toISOString(),
-          'cq:lastModifiedBy': 'admin',
-          ...properties,
-          ...initialContent
-        }
-      };
-
-      // Create the page using Sling POST servlet
-      const formData = new URLSearchParams();
-      formData.append('jcr:primaryType', 'cq:Page');
-
-      // Create page first
-      await client.post(newPagePath, formData, {
-        headers: {
-          'Content-Type': 'application/x-www-form-urlencoded'
-        }
-      });
-
-      // Then create jcr:content with initial content merged
-      const contentFormData = new URLSearchParams();
-      Object.entries(pageData['jcr:content']).forEach(([key, value]) => {
-        // Skip protected JCR properties that are auto-generated
-        if (key === 'jcr:created' || key === 'jcr:createdBy') {
-          return;
-        }
-
-        if (typeof value === 'object' && value !== null) {
-          contentFormData.append(key, JSON.stringify(value));
-        } else {
-          contentFormData.append(key, String(value));
-        }
-      });
-
-      await client.post(`${newPagePath}/jcr:content`, contentFormData, {
-        headers: {
-          'Content-Type': 'application/x-www-form-urlencoded'
-        }
-      });
-
-      // After creating the page, copy any nested initial content structures if present
-      if (initialContent && typeof initialContent === 'object') {
-        await this.copyInitialContentStructure(client, newPagePath, selectedTemplate, initialContent);
-      }
-
-      // Verify page creation
-      const verificationResponse = await client.get(`${newPagePath}.json`);
-      const hasJcrContent = verificationResponse.data['jcr:content'] !== undefined;
-
-      // Check if page is accessible in author mode
-      let pageAccessible = false;
-      try {
-        const authorResponse = await client.get(`${newPagePath}.html`, {
-          validateStatus: (status) => status < 500
-        });
-        pageAccessible = authorResponse.status === 200;
-      } catch (error) {
-        pageAccessible = false;
-      }
-
-      // Check AEM error logs (simplified check)
-      const errorLogCheck = {
-        hasErrors: false,
-        errors: []
-      };
-
-      return createSuccessResponse({
-        success: true,
-        pagePath: newPagePath,
-        title,
-        templateUsed: selectedTemplate,
-        initialContentCopied: true,
-        jcrContentCreated: hasJcrContent,
-        pageAccessible,
-        errorLogCheck,
-        creationDetails: {
-          timestamp: new Date().toISOString(),
-          steps: [
-            'Template validation completed',
-            'Template structure analyzed',
-            'Initial content identified',
-            'Page node created',
-            'jcr:content node created with initial content',
-            'Nested structures copied',
-            'Page structure verified',
-            'Accessibility check completed'
-          ]
-        },
-        pageStructure: verificationResponse.data
-      }, 'createPageWithTemplate');
-    }, 'createPageWithTemplate');
-  }
-
-  /**
-   * Helper method to copy initial content structure from template to page
-   */
-  private async copyInitialContentStructure(client: any, pagePath: string, templatePath: string, initialContent?: any) {
-    // Use provided initial content if available; otherwise fetch from template
-    try {
-      let fullInitialContent = initialContent;
-      if (!fullInitialContent || Object.keys(fullInitialContent).length === 0) {
-        const initialResponse = await client.get(`${templatePath}/initial/jcr:content.json`, {
-          params: { ':depth': '5' }
-        });
-        fullInitialContent = initialResponse.data;
-      }
-
-      if (fullInitialContent) {
-        // Recursive function to copy nested structures
-        const copyStructure = async (sourceData: any, targetPath: string) => {
-          const entries = Object.entries(sourceData);
-
-          // Build form data for the current node's properties
-          const nodeFormData = new URLSearchParams();
-          for (const [key, value] of entries) {
-            // Skip JCR metadata properties that are auto-generated
-            if (key.startsWith('jcr:') && key !== 'jcr:primaryType') {
-              continue;
+            if (!isValidContentPath(parentPath, this.aemConfig)) {
+                const err = new Error(`Invalid parent path: ${String(parentPath)}`);
+                (err as any).name = "INVALID_PARAMETERS";
+                throw err;
             }
-            if (key === 'sling:resourceType' || key === 'cq:template') {
-              continue; // Already set at root level
+            if (!title || !template) {
+                const err = new Error("Missing required fields: title, template");
+                (err as any).name = "INVALID_PARAMETERS";
+                throw err;
             }
 
-            const isChildNode =
-              value &&
-              typeof value === 'object' &&
-              !Array.isArray(value) &&
-              Object.prototype.hasOwnProperty.call(value, 'jcr:primaryType');
+            const pageName = (name || String(title))
+                .trim()
+                .replace(/[^a-zA-Z0-9-_]/g, "-")
+                .toLowerCase();
 
-            if (isChildNode) {
-              // Child nodes handled separately
-              continue;
+            const servlet = endpoint || "/bin/aem/create-page";
+            const client = this.createAxiosInstance();
+
+            const form = new URLSearchParams();
+            form.append("parentPath", parentPath);
+            form.append("pageName", pageName);
+            form.append("title", String(title));
+            form.append("template", template);
+
+            const resp = await client.post(servlet, form, {
+                headers: { "Content-Type": "application/x-www-form-urlencoded" },
+                validateStatus: (s) => s >= 200 && s < 500
+            });
+
+            if (resp.status >= 400) {
+                const err = new Error(
+                    `AEM servlet error ${resp.status}: ${
+                        typeof resp.data === "string" ? resp.data : JSON.stringify(resp.data)
+                    }`
+                );
+                (err as any).name = "AEM_REQUEST_FAILED";
+                (err as any).meta = { servlet, parentPath, pageName, template, status: resp.status };
+                throw err;
             }
 
-            if (typeof value === 'object' && value !== null) {
-              nodeFormData.append(key, JSON.stringify(value));
-            } else {
-              nodeFormData.append(key, String(value));
-            }
-          }
-
-          // Post properties for this node (create or update)
-          if ([...nodeFormData.keys()].length > 0) {
-            try {
-              await client.post(targetPath, nodeFormData, {
-                headers: {
-                  'Content-Type': 'application/x-www-form-urlencoded'
-                }
-              });
-            } catch (postError: any) {
-              try {
-                await client.post(targetPath, nodeFormData, {
-                  headers: {
-                    'Content-Type': 'application/x-www-form-urlencoded'
-                  }
-                });
-              } catch (updateError) {
-                // Silently fail for individual node creation issues
-              }
-            }
-          }
-
-          // Process child nodes
-          for (const [key, value] of entries) {
-            const isChildNode =
-              value &&
-              typeof value === 'object' &&
-              !Array.isArray(value) &&
-              Object.prototype.hasOwnProperty.call(value, 'jcr:primaryType');
-
-            if (!isChildNode) {
-              continue;
-            }
-
-            const fullTargetPath = `${targetPath}/${key}`;
-            await copyStructure(value, fullTargetPath);
-          }
-        };
-
-        // Copy all nested structures from initial content
-        await copyStructure(fullInitialContent, `${pagePath}/jcr:content`);
-      }
-    } catch (error) {
-      // If initial content copying fails, don't break page creation
-      console.warn(
-        'Warning: Could not copy full initial content structure:',
-        error instanceof Error ? error.message : String(error)
-      );
+            return {
+                success: true,
+                pagePath: `${parentPath}/${pageName}`,
+                httpStatus: resp.status,
+                aemResponse: resp.data
+            };
+        }, "createPageWithTemplate");
     }
-  }
-
 
   /**
    * Validate template compatibility with target path
