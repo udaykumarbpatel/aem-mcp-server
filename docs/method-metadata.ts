@@ -450,6 +450,49 @@ export const AEM_MCP_METHODS: MethodMetadata[] = [
     version: '1.0.0',
     implementationStatus: 'complete'
   },
+  // Workflow Operations
+  {
+    name: 'startWorkflow',
+    description: 'Start an AEM workflow using a model and payload',
+    category: 'workflow',
+    parameters: [
+      { name: 'modelId', type: 'string', required: true, description: 'Workflow model ID', examples: ['/var/workflow/models/publish-page'] },
+      { name: 'payloadPath', type: 'string', required: true, description: 'AEM path that the workflow will act on', examples: ['/content/mysite/en'] },
+      { name: 'title', type: 'string', required: false, description: 'Optional workflow title', examples: ['Publish Page'] }
+    ],
+    examples: [
+      {
+        title: 'Start workflow',
+        description: 'Start a workflow for a page',
+        request: { modelId: '/var/workflow/models/publish-page', payloadPath: '/content/mysite/en', title: 'Publish Page' },
+        expectedResponse: { success: true, workflowId: 'test-workflow-123', modelId: '/var/workflow/models/publish-page' }
+      }
+    ],
+    returnType: 'object',
+    errorCodes: ['WORKFLOW_START_FAILED', 'INVALID_PARAMETERS'],
+    version: '1.0.0',
+    implementationStatus: 'complete'
+  },
+  {
+    name: 'getWorkflowStatus',
+    description: 'Get workflow status by ID',
+    category: 'workflow',
+    parameters: [
+      { name: 'workflowId', type: 'string', required: true, description: 'Workflow instance ID', examples: ['test-workflow-123'] }
+    ],
+    examples: [
+      {
+        title: 'Get workflow status',
+        description: 'Retrieve current status of a workflow instance',
+        request: { workflowId: 'test-workflow-123' },
+        expectedResponse: { success: true, workflowId: 'test-workflow-123', state: 'RUNNING' }
+      }
+    ],
+    returnType: 'object',
+    errorCodes: ['WORKFLOW_NOT_FOUND', 'INVALID_PARAMETERS'],
+    version: '1.0.0',
+    implementationStatus: 'complete'
+  },
   // Utility Operations
   {
     name: 'listMethods',

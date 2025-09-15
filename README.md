@@ -224,6 +224,38 @@ curl -u admin:admin \
   }'
 ```
 
+#### 6. Start a workflow
+```bash
+curl -u admin:admin \
+  -X POST http://localhost:3001/mcp \
+  -H 'Content-Type: application/json' \
+  -d '{
+    "jsonrpc": "2.0",
+    "id": 6,
+    "method": "startWorkflow",
+    "params": {
+      "modelId": "/var/workflow/models/publish-page",
+      "payloadPath": "/content/mysite/en",
+      "title": "Publish Page"
+    }
+  }'
+```
+
+#### 7. Check workflow status
+```bash
+curl -u admin:admin \
+  -X POST http://localhost:3001/mcp \
+  -H 'Content-Type: application/json' \
+  -d '{
+    "jsonrpc": "2.0",
+    "id": 7,
+    "method": "getWorkflowStatus",
+    "params": {
+      "workflowId": "test-workflow-123"
+    }
+  }'
+```
+
 ### REST API Examples
 
 #### 1. Get all available methods
@@ -246,6 +278,26 @@ curl -u admin:admin \
     "depth": 1,
     "limit": 10
   }'
+```
+
+#### 4. Start a workflow
+```bash
+curl -u admin:admin \
+  -X POST http://localhost:3001/api/methods/startWorkflow \
+  -H 'Content-Type: application/json' \
+  -d '{
+    "modelId": "/var/workflow/models/publish-page",
+    "payloadPath": "/content/mysite/en",
+    "title": "Publish Page"
+  }'
+```
+
+#### 5. Get workflow status
+```bash
+curl -u admin:admin \
+  -X POST http://localhost:3001/api/methods/getWorkflowStatus \
+  -H 'Content-Type: application/json' \
+  -d '{ "workflowId": "test-workflow-123" }'
 ```
 
 ### Method Categories and Examples
@@ -290,6 +342,10 @@ curl -u admin:admin \
 - `fetchSites` - Get all available sites
 - `fetchLanguageMasters` - Get language masters for sites
 - `fetchAvailableLocales` - Get available locales
+
+#### Workflow Operations
+- `startWorkflow` - Start workflows using a model and payload path
+- `getWorkflowStatus` - Retrieve workflow instance status by ID
 
 ### Interactive Dashboard
 Access the web dashboard at `http://localhost:3001/dashboard` for:

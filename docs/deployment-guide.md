@@ -4,8 +4,8 @@ This guide provides instructions for deploying and configuring the AEM MCP Serve
 
 ## System Requirements
 
-- **Node.js**: v14.x or higher
-- **NPM**: v6.x or higher
+- **Node.js**: v18.x or higher
+- **NPM**: v9.x or higher
 - **Memory**: Minimum 2GB RAM
 - **Disk Space**: Minimum 500MB free space
 - **Network**: Access to AEM Author instance
@@ -150,7 +150,7 @@ The server provides a health endpoint at `/health` that returns the current stat
     "responseTime": 245
   },
   "mcp": {
-    "methodCount": 35,
+    "methodCount": 37,
     "lastMethodCall": "2025-07-21T12:30:00.000Z"
   },
   "system": {
