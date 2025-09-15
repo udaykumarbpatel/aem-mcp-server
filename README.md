@@ -1,7 +1,4 @@
-# 📢 Contact Me for AEM MCP Server Solutions
-
-**Interested in purchasing an MCP server for AEM as a Cloud Service?**  
-Reach out to me on [LinkedIn](https://www.linkedin.com/in/indrasish/) or [Email Me](mailto:indrasish00@gmail.com) to discuss options or to explore a more comprehensive version of this AEM MCP server, featuring separate Read and Write servers.
+**This project is inspried from indrasishbanerjee/aem-mcp-server git repo**
 
 # AEM MCP Server (aem-mcp-server)
 
@@ -36,7 +33,6 @@ AEM MCP Server is a comprehensive, production-ready Model Context Protocol (MCP)
 - **Modern, TypeScript-based AEM MCP server**
 - **REST/JSON-RPC API** for AEM content, component, and asset operations
 - **AI/LLM integration** (OpenAI, Anthropic, Ollama, custom HTTP APIs)
-- **Telegram bot** for conversational AEM management
 - **Production-ready, modular, and extensible**
 
 ---
@@ -460,12 +456,6 @@ AEM MCP Server is compatible with modern AI IDEs and code editors that support M
 
 ## Integrations
 - **AI/LLM**: OpenAI, Anthropic, Ollama, custom HTTP APIs
-- **Telegram**: Chat-based AEM management
-
----
-
-## Contribution
-Contributions are welcome! Please open issues or pull requests for bug fixes, features, or documentation improvements.
 
 ---
 
