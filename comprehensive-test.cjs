@@ -96,7 +96,8 @@ class ComprehensiveTestRunner {
         name: 'Utility Operations',
         tests: [
           { name: 'listMethods', params: {} },
-          { name: 'getStatus', params: { workflowId: 'test-123' } },
+          { name: 'startWorkflow', params: { modelId: 'test-model', payloadPath: '/content/test' } },
+          { name: 'getWorkflowStatus', params: { workflowId: 'test-123' } },
           { name: 'undoChanges', params: { jobId: 'test-job' } },
         ]
       },

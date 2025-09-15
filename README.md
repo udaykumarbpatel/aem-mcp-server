@@ -11,7 +11,7 @@ Reach out to me on [LinkedIn](https://www.linkedin.com/in/indrasish/) or [Email 
 [![TypeScript](https://img.shields.io/badge/typescript-5.8%2B-blue.svg)](https://www.typescriptlang.org/)
 [![MCP Protocol](https://img.shields.io/badge/MCP-1.15.0-green.svg)](https://modelcontextprotocol.io/)
 
-AEM MCP Server is a comprehensive, production-ready Model Context Protocol (MCP) server for Adobe Experience Manager (AEM). It provides 37+ robust REST/JSON-RPC API methods for complete content, component, asset, and template management, with advanced integrations for AI, chatbots, and automation workflows. This project is designed for AEM developers, content teams, and automation engineers who want to manage AEM programmatically or via natural language interfaces.
+AEM MCP Server is a comprehensive, production-ready Model Context Protocol (MCP) server for Adobe Experience Manager (AEM). It provides 40+ robust REST/JSON-RPC API methods for complete content, component, asset, and template management, with advanced integrations for AI, chatbots, and automation workflows. This project is designed for AEM developers, content teams, and automation engineers who want to manage AEM programmatically or via natural language interfaces.
 
 ---
 
@@ -43,7 +43,7 @@ AEM MCP Server is a comprehensive, production-ready Model Context Protocol (MCP)
 
 ## Features
 
-### 🚀 Core Capabilities (37+ Methods)
+### 🚀 Core Capabilities (40+ Methods)
 
 #### Page Operations (10 methods)
 - **Page Lifecycle**: Create, delete, activate/deactivate pages with proper template integration
@@ -80,9 +80,13 @@ AEM MCP Server is a comprehensive, production-ready Model Context Protocol (MCP)
 - **Content Replication**: Replicate and publish content to selected locales
 - **Unpublishing**: Remove content from publish environments
 
-#### Legacy & Utility Operations (5 methods)
+#### Workflow Operations (2 methods)
+- **Workflow Initiation**: Start workflows using models and payloads
+- **Status Tracking**: Retrieve workflow instance status by ID
+
+#### Legacy & Utility Operations (4 methods)
 - **JCR Node Access**: Direct node content access and child listing
-- **System Utilities**: Method listing, status checking, and workflow management
+- **System Utilities**: Method listing and administrative tools
 
 ### 🔧 Technical Features
 - **REST & JSON-RPC APIs**: Dual API support for maximum compatibility
