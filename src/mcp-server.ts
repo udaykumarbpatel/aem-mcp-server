@@ -238,7 +238,20 @@ const tools: ToolDefinition[] = [
     },
   },
   {
-    name: 'getStatus',
+    name: 'startWorkflow',
+    description: 'Start an AEM workflow',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        modelId: { type: 'string' },
+        payloadPath: { type: 'string' },
+        title: { type: 'string' },
+      },
+      required: ['modelId', 'payloadPath'],
+    },
+  },
+  {
+    name: 'getWorkflowStatus',
     description: 'Get workflow status by ID',
     inputSchema: {
       type: 'object',
@@ -552,8 +565,12 @@ server.setRequestHandler(CallToolRequestSchema, async (request: any) => {
         const result = await aemConnector.getAssetMetadata(assetPath);
         return { content: [{ type: 'text', text: JSON.stringify(result, null, 2) }] };
       }
-      case 'getStatus': {
-        const result = { success: true, workflowId: args.workflowId, status: 'completed', message: 'Mock workflow status - always returns completed', timestamp: new Date().toISOString() };
+      case 'startWorkflow': {
+        const result = await aemConnector.startWorkflow(args);
+        return { content: [{ type: 'text', text: JSON.stringify(result, null, 2) }] };
+      }
+      case 'getWorkflowStatus': {
+        const result = await aemConnector.getWorkflowStatus(args.workflowId);
         return { content: [{ type: 'text', text: JSON.stringify(result, null, 2) }] };
       }
       case 'listMethods': {

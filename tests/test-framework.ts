@@ -4,7 +4,7 @@ export interface TestCase {
   id: string;
   methodName: string;
   description: string;
-  category: 'page' | 'component' | 'asset' | 'search' | 'template' | 'site' | 'replication' | 'legacy' | 'utility';
+  category: 'page' | 'component' | 'asset' | 'search' | 'template' | 'site' | 'replication' | 'legacy' | 'utility' | 'workflow';
   parameters: any;
   expectedResult?: any;
   shouldFail?: boolean;

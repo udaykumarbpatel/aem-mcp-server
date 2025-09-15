@@ -1785,4 +1785,80 @@ export class AEMConnector {
     this.templateCacheExpiry.clear();
     console.log('🗑️ Template cache cleared');
   }
+
+  async startWorkflow(request: any): Promise<object> {
+    return safeExecute<object>(async () => {
+      const { modelId, payloadPath, title } = request || {};
+      if (!modelId || typeof modelId !== 'string') {
+        throw createAEMError(
+          AEM_ERROR_CODES.INVALID_PARAMETERS,
+          'Workflow modelId is required and must be a string'
+        );
+      }
+      if (!payloadPath || typeof payloadPath !== 'string') {
+        throw createAEMError(
+          AEM_ERROR_CODES.INVALID_PARAMETERS,
+          'Payload path is required and must be a string'
+        );
+      }
+      if (!isValidContentPath(payloadPath, this.aemConfig)) {
+        throw createAEMError(
+          AEM_ERROR_CODES.INVALID_PATH,
+          `Payload path '${payloadPath}' is not within allowed content roots`,
+          { path: payloadPath, allowedRoots: Object.values(this.aemConfig.contentPaths) }
+        );
+      }
+
+      const client = this.createAxiosInstance();
+      try {
+        const response = await client.post(
+          `/api/workflow/runtime/models/${encodeURIComponent(modelId)}/instances`,
+          {
+            payload: payloadPath,
+            payloadType: 'JCR_PATH',
+            workflowTitle: title,
+          }
+        );
+        const workflowId = response.data?.id || response.data?.workflowId || response.data;
+        return createSuccessResponse(
+          {
+            workflowId,
+            modelId,
+            payloadPath,
+            state: response.data?.state || 'unknown',
+          },
+          'startWorkflow'
+        );
+      } catch (error: any) {
+        throw handleAEMHttpError(error, 'startWorkflow');
+      }
+    }, 'startWorkflow');
+  }
+
+  async getWorkflowStatus(workflowId: string): Promise<object> {
+    return safeExecute<object>(async () => {
+      if (!workflowId || typeof workflowId !== 'string') {
+        throw createAEMError(
+          AEM_ERROR_CODES.INVALID_PARAMETERS,
+          'Workflow ID is required and must be a string'
+        );
+      }
+      const client = this.createAxiosInstance();
+      try {
+        const response = await client.get(
+          `/api/workflow/runtime/instances/${encodeURIComponent(workflowId)}`
+        );
+        return createSuccessResponse(
+          {
+            workflowId,
+            status: response.data?.status || response.data?.state,
+            data: response.data,
+          },
+          'getWorkflowStatus'
+        );
+      } catch (error: any) {
+        throw handleAEMHttpError(error, 'getWorkflowStatus');
+      }
+    }, 'getWorkflowStatus');
+  }
 }

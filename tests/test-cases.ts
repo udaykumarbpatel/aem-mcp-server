@@ -439,19 +439,6 @@ export const utilityOperationsTests: TestCase[] = [
     }
   },
   {
-    id: 'util-002',
-    methodName: 'getStatus',
-    description: 'Get workflow status (mock)',
-    category: 'utility',
-    parameters: {
-      workflowId: 'test-workflow-123'
-    },
-    expectedResult: {
-      success: true,
-      status: 'completed'
-    }
-  },
-  {
     id: 'util-003',
     methodName: 'undoChanges',
     description: 'Attempt to undo changes (not implemented)',
@@ -463,6 +450,30 @@ export const utilityOperationsTests: TestCase[] = [
       success: true,
       message: 'undoChanges is not implemented'
     }
+  }
+];
+
+export const workflowOperationsTests: TestCase[] = [
+  {
+    id: 'wf-001',
+    methodName: 'startWorkflow',
+    description: 'Start a workflow',
+    category: 'workflow',
+    parameters: {
+      modelId: 'test-model',
+      payloadPath: '/content/test'
+    },
+    shouldFail: true
+  },
+  {
+    id: 'wf-002',
+    methodName: 'getWorkflowStatus',
+    description: 'Get workflow status',
+    category: 'workflow',
+    parameters: {
+      workflowId: 'test-workflow-123'
+    },
+    shouldFail: true
   }
 ];
 
@@ -552,6 +563,11 @@ export const testSuites: TestSuite[] = [
     name: 'Replication Operations',
     description: 'Test content replication and publishing workflows',
     testCases: replicationOperationsTests
+  },
+  {
+    name: 'Workflow Operations',
+    description: 'Test workflow initiation and status retrieval',
+    testCases: workflowOperationsTests
   },
   {
     name: 'Legacy Operations',

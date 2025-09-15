@@ -1,6 +1,7 @@
 import * as components from './aem/components.js';
 import * as pages from './aem/pages.js';
 import * as assets from './aem/assets.js';
+import * as workflows from './aem/workflows.js';
 import { categorizeMethod } from './utils/method-categorizer.js';
 
 export class MCPRequestHandler {
@@ -49,8 +50,10 @@ export class MCPRequestHandler {
           return await pages.executeJCRQuery(params.query, params.limit);
         case 'getAssetMetadata':
           return await assets.getAssetMetadata(params.assetPath);
-        case 'getStatus':
-          return this.getWorkflowStatus(params.workflowId);
+        case 'startWorkflow':
+          return await workflows.startWorkflow(params);
+        case 'getWorkflowStatus':
+          return await workflows.getWorkflowStatus(params.workflowId);
         case 'listMethods':
           return { methods: this.getAvailableMethods() };
         case 'enhancedPageSearch':
@@ -94,16 +97,6 @@ export class MCPRequestHandler {
     }
   }
 
-  getWorkflowStatus(workflowId: string) {
-    return {
-      success: true,
-      workflowId: workflowId,
-      status: 'completed',
-      message: 'Mock workflow status - always returns completed',
-      timestamp: new Date().toISOString()
-    };
-  }
-
   getAvailableMethods() {
     const methods = [
       { name: 'validateComponent', description: 'Validate component changes before applying them', parameters: ['locale', 'page_path', 'component', 'props'] },
@@ -126,7 +119,8 @@ export class MCPRequestHandler {
       { name: 'searchContent', description: 'Search content using Query Builder', parameters: ['type', 'fulltext', 'path', 'limit'] },
       { name: 'executeJCRQuery', description: 'Execute JCR query', parameters: ['query', 'limit'] },
       { name: 'getAssetMetadata', description: 'Get asset metadata', parameters: ['assetPath'] },
-      { name: 'getStatus', description: 'Get workflow status by ID', parameters: ['workflowId'] },
+      { name: 'startWorkflow', description: 'Start an AEM workflow', parameters: ['modelId', 'payloadPath', 'title'] },
+      { name: 'getWorkflowStatus', description: 'Get workflow status by ID', parameters: ['workflowId'] },
       { name: 'listMethods', description: 'Get list of available MCP methods', parameters: [] },
       { name: 'enhancedPageSearch', description: 'Intelligent page search with comprehensive fallback strategies and cross-section search', parameters: ['searchTerm', 'basePath', 'includeAlternateLocales'] },
       { name: 'createPage', description: 'Create a new page in AEM', parameters: ['parentPath', 'title', 'template', 'name', 'properties'] },
