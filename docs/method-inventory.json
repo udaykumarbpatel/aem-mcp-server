@@ -1,6 +1,6 @@
 {
   "aemMcpMethods": {
-    "totalMethods": 35,
+    "totalMethods": 37,
     "categories": {
       "pageOperations": {
         "description": "Operations for managing AEM pages",
@@ -182,6 +182,22 @@
             "requiredParams": ["assetPath"],
             "returnType": "object",
             "category": "asset"
+          },
+          {
+            "name": "activateAsset",
+            "description": "Activate (publish) a DAM asset",
+            "parameters": ["assetPath", "activateTree"],
+            "requiredParams": ["assetPath"],
+            "returnType": "object",
+            "category": "asset"
+          },
+          {
+            "name": "deactivateAsset",
+            "description": "Deactivate (unpublish) a DAM asset",
+            "parameters": ["assetPath", "deactivateTree"],
+            "requiredParams": ["assetPath"],
+            "returnType": "object",
+            "category": "asset"
           }
         ]
       },
@@ -341,7 +357,7 @@
     "methodsByCategory": {
       "page": 10,
       "component": 7,
-      "asset": 4,
+      "asset": 6,
       "search": 3,
       "template": 2,
       "site": 3,
