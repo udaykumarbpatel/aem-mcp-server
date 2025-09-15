@@ -154,7 +154,7 @@ export class TestFramework {
       const response = await this.executeMethod(testCase.methodName, testCase.parameters, testCase.timeout);
       const duration = Date.now() - startTime;
 
-      const success = testCase.shouldFail ? false : this.validateResponse(response, testCase.expectedResult);
+      const success = this.validateResponse(response, testCase);
       
       result = {
         testCase,
@@ -217,11 +217,11 @@ export class TestFramework {
     }
   }
 
-  private validateResponse(response: any, expectedResult?: any): boolean {
-    // If this is an error scenario test, check if the response contains error details
-    if (this.currentMethod?.shouldFail) {
-      // For error scenarios, we expect success: false in the response body
-      return response.data?.success === false;
+  private validateResponse(response: any, testCase: TestCase): boolean {
+    if (testCase.shouldFail) {
+      // For error scenarios, we expect success: false in the response body,
+      // or a non-2xx HTTP status code if the error is at the transport layer.
+      return response.data?.success === false || (response.status >= 400 && response.status < 600);
     }
 
     // Basic validation - response should be successful
@@ -229,13 +229,13 @@ export class TestFramework {
       return false;
     }
 
-    // If no expected result specified, just check for successful response
-    if (!expectedResult) {
+    // If no expected result specified, just check for successful response status
+    if (!testCase.expectedResult) {
       return response.status >= 200 && response.status < 300;
     }
 
     // Validate against expected result
-    return this.deepCompare(response.data, expectedResult);
+    return this.deepCompare(response.data, testCase.expectedResult);
   }
 
   private deepCompare(actual: any, expected: any): boolean {

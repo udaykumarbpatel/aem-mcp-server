@@ -265,6 +265,24 @@ export const assetOperationsTests: TestCase[] = [
       force: true
     },
     dependencies: ['asset-002']
+  },
+  {
+    id: 'asset-005',
+    methodName: 'activateAsset',
+    description: 'Activate a test asset',
+    category: 'asset',
+    parameters: {
+      assetPath: '/content/dam/we-retail/en/activities/biking/bike_24.jpg'
+    }
+  },
+  {
+    id: 'asset-006',
+    methodName: 'deactivateAsset',
+    description: 'Deactivate a test asset',
+    category: 'asset',
+    parameters: {
+      assetPath: '/content/dam/we-retail/en/activities/biking/bike_24.jpg'
+    }
   }
 ];
 
@@ -466,6 +484,16 @@ export const workflowOperationsTests: TestCase[] = [
     shouldFail: true
   },
   {
+    id: 'error-005',
+    methodName: 'getAssetMetadata',
+    description: 'Get metadata of non-existent asset',
+    category: 'asset',
+    parameters: {
+      assetPath: '/content/dam/non-existent-asset-2.jpg'
+    },
+    shouldFail: true
+  },
+  {
     id: 'wf-002',
     methodName: 'getWorkflowStatus',
     description: 'Get workflow status',
@@ -527,6 +555,38 @@ export const errorTestCases: TestCase[] = [
   }
 ];
 
+// Extended Template Operations Test Cases
+export const extendedTemplateOperationsTests: TestCase[] = [
+  {
+    id: 'ext-template-001',
+    methodName: 'validateTemplate',
+    description: 'Validate a template for a given path',
+    category: 'template',
+    parameters: {
+      templatePath: '/conf/we-retail/settings/wcm/templates/content-page',
+      targetPath: '/content/we-retail/us/en'
+    }
+  },
+  {
+    id: 'ext-template-002',
+    methodName: 'getTemplateMetadata',
+    description: 'Get metadata for a specific template',
+    category: 'template',
+    parameters: {
+      templatePath: '/conf/we-retail/settings/wcm/templates/content-page'
+    }
+  },
+  {
+    id: 'ext-template-003',
+    methodName: 'getAvailableTemplates',
+    description: 'Get available templates for a parent path',
+    category: 'template',
+    parameters: {
+      parentPath: '/content/we-retail/us/en'
+    }
+  }
+];
+
 // Test Suites
 export const testSuites: TestSuite[] = [
   {
@@ -553,6 +613,11 @@ export const testSuites: TestSuite[] = [
     name: 'Template Operations',
     description: 'Test template discovery and structure analysis',
     testCases: templateOperationsTests
+  },
+  {
+    name: 'Extended Template Operations',
+    description: 'Test extended template operations',
+    testCases: extendedTemplateOperationsTests
   },
   {
     name: 'Site Operations',
