@@ -1,38 +1,13 @@
 {
-  "name": "aem-mcp-agent",
+  "name": "aem-mcp-monorepo",
+  "private": true,
   "version": "1.0.0",
-  "description": "AEM Model Context Protocol (MCP) server with LLM (TypeScript clone)",
-  "main": "dist/index.js",
+  "description": "Workspace containing the legacy MCP server and the LangGraph-based authoring agent.",
   "scripts": {
-    "build": "tsc",
-    "start": "node dist/index.js",
-    "dev": "tsx --watch src/index.ts",
-    "mcp": "node dist/mcp-server.js",
-    "test": "npm run build && node dist/tests/run-tests.js",
-    "test:quick": "npm run build && node dist/tests/run-tests.js -- --quick",
-    "test:verbose": "npm run build && node dist/tests/run-tests.js -- --verbose",
-    "test:report": "npm run build && node dist/tests/run-tests.js -- --output test-report --format html"
+    "build": "pnpm --filter aem-langgraph-agent build",
+    "lint": "pnpm --filter aem-langgraph-agent lint",
+    "test": "pnpm --filter aem-langgraph-agent test",
+    "agent": "pnpm --filter aem-langgraph-agent agent"
   },
-  "dependencies": {
-    "@anthropic-ai/sdk": "^0.19.0",
-    "@modelcontextprotocol/sdk": "^1.15.0",
-    "axios": "^1.6.7",
-    "cors": "^2.8.5",
-    "dotenv": "^16.4.5",
-    "express": "^4.21.2",
-    "openai": "^4.30.0",
-    "swagger-jsdoc": "^6.2.8",
-    "swagger-ui-express": "^5.0.1"
-  },
-  "devDependencies": {
-    "@types/cors": "^2.8.19",
-    "@types/express": "^5.0.3",
-    "@types/swagger-jsdoc": "^6.0.4",
-    "@types/swagger-ui-express": "^4.1.8",
-    "ts-node": "^10.9.2",
-    "ts-node-dev": "^2.0.0",
-    "tsx": "^4.14.0",
-    "typescript": "^5.8.3"
-  },
-  "type": "module"
+  "packageManager": "pnpm@8.15.4"
 }
