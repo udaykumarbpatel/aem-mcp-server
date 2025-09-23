@@ -55,7 +55,7 @@ export class Planner {
     const response = await this.client.responses.create({
       model: "gpt-5-mini",
       temperature: 0,
-      text: { format: "json_object" },
+      text: { format: { type: "json_object" } },
       input: messages
     });
 
